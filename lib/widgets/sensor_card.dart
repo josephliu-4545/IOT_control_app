@@ -74,11 +74,15 @@ class SensorCard extends StatelessWidget {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Text(
-                          value,
-                          style: theme.textTheme.headlineSmall?.copyWith(
-                            color: AppColors.textPrimary,
-                            fontWeight: FontWeight.w600,
+                        Flexible(
+                          child: Text(
+                            value,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.headlineSmall?.copyWith(
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                         if (unit != null) ...[

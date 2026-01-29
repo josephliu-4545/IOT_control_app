@@ -31,10 +31,18 @@ class BlynkConfig {
   // TODO: Put your real Blynk auth token here.
   static const String authToken = 'YOUR_BLYNK_AUTH_TOKEN';
 
-  // Virtual pin mapping.
+  // Virtual pin mapping - wristband.
   static const String pinHeartRate = 'V0';
   static const String pinOxygen = 'V1';
   static const String pinWifi = 'V2';
   static const String pinBattery = 'V3';
   // If you have a pin for solar status, add here (e.g. V4).
+
+  // Virtual pin mapping - smart glasses (future ESP32 integration).
+  // Camera control: 0 = off, 1 = on.
+  static const String pinGlassesCamera = 'V10';
+  // Ambient temperature around the glasses, e.g. in °C.
+  static const String pinGlassesTemperature = 'V11';
+  // Connection/link status: 0 = offline, 1 = connected.
+  static const String pinGlassesLink = 'V12';
 }

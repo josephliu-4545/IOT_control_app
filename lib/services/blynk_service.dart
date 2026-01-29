@@ -44,6 +44,19 @@ class SensorSnapshot {
   }
 }
 
+/// Snapshot of smart glasses state (separate from wristband vitals).
+class GlassesSnapshot {
+  final bool cameraOn;
+  final double ambientTemperatureC;
+  final bool connected;
+
+  const GlassesSnapshot({
+    required this.cameraOn,
+    required this.ambientTemperatureC,
+    required this.connected,
+  });
+}
+
 class BlynkService {
   final String authToken;
   final bool useDummyData;
@@ -104,12 +117,96 @@ class BlynkService {
     }
   }
 
+  /// Fetch smart glasses state (camera, environment, connection).
+  ///
+  /// When [useDummyData] is true, this returns simulated but realistic data.
+  Future<GlassesSnapshot> fetchGlassesSnapshot() async {
+    if (useDummyData) {
+      return _generateDummyGlassesSnapshot();
+    }
+
+    try {
+      // GET /get?token=YOUR_TOKEN&V10&V11&V12
+      final uri = Uri.parse(
+        '${BlynkConfig.baseUrl}/get'
+        '?token=$authToken'
+        '&${BlynkConfig.pinGlassesCamera}'
+        '&${BlynkConfig.pinGlassesTemperature}'
+        '&${BlynkConfig.pinGlassesLink}',
+      );
+
+      final response = await http.get(uri).timeout(const Duration(seconds: 5));
+
+      if (response.statusCode != 200) {
+        return _generateDummyGlassesSnapshot();
+      }
+
+      final List<dynamic> values = jsonDecode(response.body);
+
+      final int cameraRaw = _parseInt(values.elementAtOrNull(0), fallback: 0);
+      final bool cameraOn = cameraRaw != 0;
+
+      // Temperature may be reported as int or double; treat as double.
+      final dynamic tempRaw = values.elementAtOrNull(1);
+      final double temperature = _parseDouble(tempRaw, fallback: 26.5);
+
+      final int linkRaw = _parseInt(values.elementAtOrNull(2), fallback: 1);
+      final bool connected = linkRaw != 0;
+
+      return GlassesSnapshot(
+        cameraOn: cameraOn,
+        ambientTemperatureC: temperature,
+        connected: connected,
+      );
+    } on TimeoutException {
+      return _generateDummyGlassesSnapshot();
+    } catch (_) {
+      return _generateDummyGlassesSnapshot();
+    }
+  }
+
+  /// Toggle smart glasses camera via Blynk.
+  ///
+  /// In dummy mode, this only simulates success without calling the API.
+  Future<void> setGlassesCamera(bool on) async {
+    if (useDummyData) {
+      // No-op in dummy mode; view models can still update local UI state.
+      return;
+    }
+
+    final value = on ? '1' : '0';
+
+    final uri = Uri.parse(
+      '${BlynkConfig.baseUrl}/update'
+      '?token=$authToken'
+      '&${BlynkConfig.pinGlassesCamera}=$value',
+    );
+
+    try {
+      await http.get(uri).timeout(const Duration(seconds: 5));
+    } on TimeoutException {
+      // For now, we silently ignore failures; callers may choose to refetch state.
+    } catch (_) {
+      // Swallow network errors for now; could be logged in a real app.
+    }
+  }
+
   int _parseInt(dynamic value, {required int fallback}) {
     if (value == null) return fallback;
     if (value is int) return value;
     if (value is double) return value.round();
     if (value is String) {
       return int.tryParse(value) ?? fallback;
+    }
+    return fallback;
+  }
+
+  double _parseDouble(dynamic value, {required double fallback}) {
+    if (value == null) return fallback;
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is String) {
+      return double.tryParse(value) ?? fallback;
     }
     return fallback;
   }
@@ -129,6 +226,21 @@ class BlynkService {
       batteryLevel: battery.clamp(0, 100),
       isChargingSolar: charging,
       isOnline: isOnline,
+    );
+  }
+
+  GlassesSnapshot _generateDummyGlassesSnapshot() {
+    // Simulate realistic ambient temperature (e.g. 24–32 °C).
+    final double temp = 24 + _random.nextDouble() * 8;
+    // Simulate mostly-connected link with occasional drops.
+    final bool connected = _random.nextInt(10) > 1;
+    // Camera is off by default, occasionally on.
+    final bool cameraOn = _random.nextInt(10) == 0;
+
+    return GlassesSnapshot(
+      cameraOn: cameraOn,
+      ambientTemperatureC: temp,
+      connected: connected,
     );
   }
 }

@@ -76,8 +76,11 @@ class DashboardViewModel extends ChangeNotifier {
 
   SensorSnapshot? _currentSnapshot;
   List<int> _heartRateHistory = [];
+  GlassesSnapshot? _glassesSnapshot;
 
   SensorSnapshot? get currentSnapshot => _currentSnapshot;
+
+  GlassesSnapshot? get glassesSnapshot => _glassesSnapshot;
 
   List<int> get heartRateHistory => List.unmodifiable(_heartRateHistory);
 
@@ -103,7 +106,10 @@ class DashboardViewModel extends ChangeNotifier {
     notifyListeners();
 
     final snapshot = await blynkService.fetchSensorSnapshot();
+    final glasses = await blynkService.fetchGlassesSnapshot();
+
     _currentSnapshot = snapshot;
+    _glassesSnapshot = glasses;
     _appendHeartRate(snapshot.heartRateBpm);
 
     _isFetching = false;
