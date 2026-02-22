@@ -178,6 +178,51 @@ app.get('/device/commands', async (req, res) => {
   }
 });
 
+app.get('/device/dashboard', async (req, res) => {
+  try {
+    const { deviceId } = await validateDevice(req);
+
+    const queryDeviceId = req.query.deviceId;
+    if (!queryDeviceId || queryDeviceId !== deviceId) {
+      return res.status(400).json({ error: 'deviceId query param must match x-device-id' });
+    }
+
+    const latestQuery = db
+      .collection('heart_rate_analysis')
+      .where('deviceId', '==', deviceId)
+      .orderBy('createdAt', 'desc')
+      .limit(1)
+      .get();
+
+    const historyQuery = db
+      .collection('heart_rate_analysis')
+      .where('deviceId', '==', deviceId)
+      .orderBy('createdAt', 'desc')
+      .limit(10)
+      .get();
+
+    const [latestSnap, historySnap] = await Promise.all([latestQuery, historyQuery]);
+
+    const latest = latestSnap.empty
+      ? null
+      : { id: latestSnap.docs[0].id, ...latestSnap.docs[0].data() };
+
+    const history = historySnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+    const summary = {
+      totalReadings: history.length,
+      critical: history.filter((d) => d.primaryStatus === 'critical').length,
+      warning: history.filter((d) => d.primaryStatus === 'warning').length,
+      normal: history.filter((d) => d.primaryStatus === 'normal').length,
+    };
+
+    return res.json({ ok: true, latest, history, summary });
+  } catch (err) {
+    const status = err.status || 500;
+    return res.status(status).json({ error: err.message || 'Error', details: String(err) });
+  }
+});
+
 app.post('/device/upload-image', upload.single('image'), async (req, res) => {
   try {
     const { deviceId } = await validateDevice(req);
