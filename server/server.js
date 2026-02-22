@@ -103,7 +103,7 @@ function analyzeHeartRate({ bpm, prevBpm }) {
   const hasLowOrHigh = flags.includes('low') || flags.includes('high');
 
   let primaryStatus = 'normal';
-  if (hasSpike && hasLowOrHigh) {
+  if (hasSpike) {
     primaryStatus = 'critical';
   } else if (hasLowOrHigh) {
     primaryStatus = 'warning';
