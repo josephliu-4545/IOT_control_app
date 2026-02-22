@@ -182,6 +182,33 @@ app.get('/device/dashboard', async (req, res) => {
   try {
     const { deviceId } = await validateDevice(req);
 
+    function normalizeHeartRateAnalysisDoc(doc) {
+      if (!doc || typeof doc !== 'object') return doc;
+
+      if (doc.primaryStatus) {
+        return {
+          ...doc,
+          flags: Array.isArray(doc.flags) ? doc.flags : [],
+          primaryStatus: doc.primaryStatus,
+        };
+      }
+
+      if (!doc.status) {
+        return {
+          ...doc,
+          flags: Array.isArray(doc.flags) ? doc.flags : [],
+          primaryStatus: 'normal',
+        };
+      }
+
+      const status = String(doc.status);
+      if (status === 'low') return { ...doc, flags: ['low'], primaryStatus: 'warning' };
+      if (status === 'high') return { ...doc, flags: ['high'], primaryStatus: 'warning' };
+      if (status === 'spike') return { ...doc, flags: ['spike'], primaryStatus: 'critical' };
+      if (status === 'normal') return { ...doc, flags: [], primaryStatus: 'normal' };
+      return { ...doc, flags: [], primaryStatus: 'normal' };
+    }
+
     const queryDeviceId = req.query.deviceId;
     if (!queryDeviceId || queryDeviceId !== deviceId) {
       return res.status(400).json({ error: 'deviceId query param must match x-device-id' });
@@ -203,11 +230,15 @@ app.get('/device/dashboard', async (req, res) => {
 
     const [latestSnap, historySnap] = await Promise.all([latestQuery, historyQuery]);
 
-    const latest = latestSnap.empty
+    const latestRaw = latestSnap.empty
       ? null
       : { id: latestSnap.docs[0].id, ...latestSnap.docs[0].data() };
 
-    const history = historySnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    const latest = latestRaw ? normalizeHeartRateAnalysisDoc(latestRaw) : null;
+
+    const history = historySnap.docs
+      .map((d) => ({ id: d.id, ...d.data() }))
+      .map(normalizeHeartRateAnalysisDoc);
 
     const summary = {
       totalReadings: history.length,
