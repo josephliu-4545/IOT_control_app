@@ -240,6 +240,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
   ) {
     final theme = Theme.of(context);
 
+    final bool hasAnalysis =
+        (analysis?.riskLevel?.isNotEmpty ?? false) ||
+        (analysis?.lighting?.isNotEmpty ?? false) ||
+        (analysis?.summary?.isNotEmpty ?? false) ||
+        (analysis?.hazards.isNotEmpty ?? false);
+
     final String risk = (analysis?.riskLevel?.isNotEmpty ?? false)
         ? analysis!.riskLevel!
         : '--';
@@ -248,9 +254,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         : '--';
     final String summary = (analysis?.summary?.isNotEmpty ?? false)
         ? analysis!.summary!
-        : 'No environment analysis yet.';
+        : 'No analysis yet. Tap Analyze to generate.';
     final String hazardsText = (analysis == null || analysis.hazards.isEmpty)
-        ? '--'
+        ? 'None'
         : analysis.hazards.join(', ');
 
     Future<void> onAnalyzePressed() async {
@@ -288,19 +294,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ?.copyWith(fontWeight: FontWeight.w700),
                 ),
               ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(color: AppColors.border),
+              if (hasAnalysis)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Text(
+                    'Risk: $risk',
+                    style: theme.textTheme.labelMedium
+                        ?.copyWith(color: AppColors.textSecondary),
+                  ),
                 ),
-                child: Text(
-                  'Risk: $risk',
-                  style: theme.textTheme.labelMedium
-                      ?.copyWith(color: AppColors.textSecondary),
-                ),
-              ),
             ],
           ),
           const SizedBox(height: AppSpacing.sm),
@@ -308,31 +315,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
             summary,
             style: theme.textTheme.bodyMedium
                 ?.copyWith(color: AppColors.textSecondary),
-            maxLines: 3,
+            maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: AppSpacing.sm),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Lighting: $lighting',
-                  style: theme.textTheme.bodySmall
-                      ?.copyWith(color: AppColors.textSecondary),
-                ),
-              ),
-              Text(
-                'Hazards: ${(analysis?.hazards.length ?? 0)}',
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(color: AppColors.textSecondary),
-              ),
-            ],
+          Text(
+            'Lighting: $lighting',
+            style: theme.textTheme.bodySmall
+                ?.copyWith(color: AppColors.textSecondary),
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
-            hazardsText == '--'
-                ? 'Hazards: --'
-                : 'Hazards: ${(analysis?.hazards.length ?? 0)}',
+            'Hazards: $hazardsText',
             style: theme.textTheme.bodySmall
                 ?.copyWith(color: AppColors.textSecondary),
             maxLines: 2,
@@ -346,6 +340,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
               icon: const Icon(Icons.analytics),
               label: const Text('Analyze My Environment'),
             ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            'Test Upload (Postman): POST https://iot-control-app.onrender.com/device/upload-image (multipart field: image)',
+            style: theme.textTheme.bodySmall
+                ?.copyWith(color: AppColors.textSecondary),
           ),
         ],
       ),

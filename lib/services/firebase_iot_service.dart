@@ -79,6 +79,8 @@ class FirebaseIoTService {
   Stream<EnvironmentAnalysis> streamLatestEnvironmentAnalysis({
     String deviceId = 'esp32cam-001',
   }) {
+    // Firestore may require a composite index for:
+    // collection: environment_analysis, fields: deviceId (ASC), createdAt (DESC).
     return _firestore
         .collection('environment_analysis')
         .where('deviceId', isEqualTo: deviceId)
