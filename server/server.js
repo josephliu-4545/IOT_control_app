@@ -88,26 +88,40 @@ async function aiAnalyzeEnvironmentStub({ deviceId, imageBase64 }) {
 }
 
 function analyzeHeartRate({ bpm, prevBpm }) {
-  let status = 'normal';
-  let reason = 'Within normal range.';
+  const flags = [];
 
-  if (bpm > 120) {
-    status = 'high';
-    reason = 'BPM above 120.';
-  } else if (bpm < 40) {
-    status = 'low';
-    reason = 'BPM below 40.';
-  }
+  if (bpm < 40) flags.push('low');
+  if (bpm > 120) flags.push('high');
 
+  let delta = null;
   if (Number.isFinite(prevBpm)) {
-    const delta = Math.abs(bpm - prevBpm);
-    if (delta >= 30) {
-      status = 'spike';
-      reason = `Spike detected (Δ${delta} from previous BPM).`;
-    }
+    delta = Math.abs(bpm - prevBpm);
+    if (delta >= 30) flags.push('spike');
   }
 
-  return { status, reason };
+  const hasSpike = flags.includes('spike');
+  const hasLowOrHigh = flags.includes('low') || flags.includes('high');
+
+  let primaryStatus = 'normal';
+  if (hasSpike && hasLowOrHigh) {
+    primaryStatus = 'critical';
+  } else if (hasLowOrHigh) {
+    primaryStatus = 'warning';
+  }
+
+  const reasonParts = [];
+  if (flags.includes('low')) reasonParts.push('BPM below 40.');
+  if (flags.includes('high')) reasonParts.push('BPM above 120.');
+  if (flags.includes('spike')) {
+    reasonParts.push(
+      delta == null
+        ? 'Spike detected.'
+        : `Spike detected (Δ${delta} from previous BPM).`
+    );
+  }
+
+  const reason = reasonParts.length ? reasonParts.join(' ') : 'Within normal range.';
+  return { flags, primaryStatus, reason };
 }
 
 const app = express();
@@ -254,12 +268,23 @@ app.post('/device/telemetry/heart-rate', async (req, res) => {
       deviceId,
       bpm,
       spo2,
-      status: analysis.status,
+      flags: analysis.flags,
+      primaryStatus: analysis.primaryStatus,
       reason: analysis.reason,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    return res.json({ ok: true, id: docRef.id, analysis });
+    return res.json({
+      ok: true,
+      id: docRef.id,
+      analysis: {
+        bpm,
+        spo2,
+        flags: analysis.flags,
+        primaryStatus: analysis.primaryStatus,
+        reason: analysis.reason,
+      },
+    });
   } catch (err) {
     const status = err.status || 500;
     return res.status(status).json({ error: err.message || 'Error', details: String(err) });
