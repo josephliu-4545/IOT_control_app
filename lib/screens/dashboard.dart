@@ -8,6 +8,7 @@ import '../utils/constants.dart';
 import '../widgets/sensor_card.dart';
 import '../services/device_command_service.dart';
 import 'health.dart';
+import 'live_dashboard.dart';
 
 class DashboardScreen extends StatefulWidget {
   static const String routeName = '/';
@@ -34,6 +35,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
       appBar: AppBar(
         title: const Text('Smart Health Dashboard'),
         actions: [
+          IconButton(
+            tooltip: 'Live dashboard',
+            icon: const Icon(Icons.insights),
+            onPressed: () {
+              Navigator.of(context).pushNamed(LiveDashboardScreen.routeName);
+            },
+          ),
           IconButton(
             tooltip: 'Health details',
             icon: const Icon(Icons.monitor_heart),
@@ -226,7 +234,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-    Widget _buildEnvironmentAnalysisCard(
+  Widget _buildEnvironmentAnalysisCard(
     BuildContext context,
     EnvironmentAnalysis? analysis,
   ) {
@@ -281,7 +289,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(999),
                   border: Border.all(color: AppColors.border),
@@ -321,7 +330,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
-            hazardsText == '--' ? 'Hazards: --' : 'Hazards: ${(analysis?.hazards.length ?? 0)}',
+            hazardsText == '--'
+                ? 'Hazards: --'
+                : 'Hazards: ${(analysis?.hazards.length ?? 0)}',
             style: theme.textTheme.bodySmall
                 ?.copyWith(color: AppColors.textSecondary),
             maxLines: 2,

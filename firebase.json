@@ -1,10 +1,1 @@
-{
-  "functions": [
-    {
-      "source": "functions"
-    }
-  ],
-  "firestore": {
-    "rules": "firestore.rules"
-  }
-}
+{"functions":[{"source":"functions"}],"firestore":{"rules":"firestore.rules"},"flutter":{"platforms":{"android":{"default":{"projectId":"iot-health-monitor-c3c26","appId":"1:103108297358:android:1bf71d4814e5b1e3e37fdf","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"iot-health-monitor-c3c26","configurations":{"android":"1:103108297358:android:1bf71d4814e5b1e3e37fdf","ios":"1:103108297358:ios:a52eba14f923e26fe37fdf","macos":"1:103108297358:ios:a52eba14f923e26fe37fdf","web":"1:103108297358:web:7690edb5bbc4bc3ae37fdf","windows":"1:103108297358:web:46e1d32c44ffc692e37fdf"}}}}}}

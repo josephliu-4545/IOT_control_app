@@ -7,16 +7,22 @@ import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+import 'firebase_options.dart';
 import 'models/environment_analysis.dart';
 import 'models/snapshots.dart';
 import 'screens/dashboard.dart';
 import 'screens/health.dart';
+import 'screens/live_dashboard.dart';
 import 'services/firebase_iot_service.dart';
 import 'utils/constants.dart';
 
-Future<void> main() async {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
   await FirebaseAuth.instance.signInAnonymously();
   runApp(const SmartHealthApp());
 }
@@ -69,6 +75,7 @@ class SmartHealthApp extends StatelessWidget {
         routes: {
           DashboardScreen.routeName: (_) => const DashboardScreen(),
           HealthScreen.routeName: (_) => const HealthScreen(),
+          LiveDashboardScreen.routeName: (_) => const LiveDashboardScreen(),
         },
       ),
     );

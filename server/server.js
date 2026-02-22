@@ -3,6 +3,8 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const multer = require('multer');
 const admin = require('firebase-admin');
+const fs = require('fs');
+const path = require('path');
 
 dotenv.config();
 
@@ -128,8 +130,24 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '2mb' }));
 
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+app.use('/uploads', express.static(uploadsDir));
+
 const upload = multer({
-  storage: multer.memoryStorage(),
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => {
+      cb(null, uploadsDir);
+    },
+    filename: (_req, file, cb) => {
+      const ext = path.extname(file.originalname || '') || '.jpg';
+      const safeExt = ext.length <= 10 ? ext : '.jpg';
+      cb(null, `${Date.now()}-${Math.round(Math.random() * 1e9)}${safeExt}`);
+    },
+  }),
   limits: {
     fileSize: 2 * 1024 * 1024, // 2MB
   },
@@ -228,7 +246,18 @@ app.get('/device/dashboard', async (req, res) => {
       .limit(10)
       .get();
 
-    const [latestSnap, historySnap] = await Promise.all([latestQuery, historyQuery]);
+    const latestImageQuery = db
+      .collection('device_images')
+      .where('deviceId', '==', deviceId)
+      .orderBy('createdAt', 'desc')
+      .limit(1)
+      .get();
+
+    const [latestSnap, historySnap, latestImageSnap] = await Promise.all([
+      latestQuery,
+      historyQuery,
+      latestImageQuery,
+    ]);
 
     const latestRaw = latestSnap.empty
       ? null
@@ -247,7 +276,11 @@ app.get('/device/dashboard', async (req, res) => {
       normal: history.filter((d) => d.primaryStatus === 'normal').length,
     };
 
-    return res.json({ ok: true, latest, history, summary });
+    const latestImage = latestImageSnap.empty
+      ? null
+      : { id: latestImageSnap.docs[0].id, ...latestImageSnap.docs[0].data() };
+
+    return res.json({ ok: true, latest, history, summary, latestImage });
   } catch (err) {
     const status = err.status || 500;
     return res.status(status).json({ error: err.message || 'Error', details: String(err) });
@@ -258,12 +291,21 @@ app.post('/device/upload-image', upload.single('image'), async (req, res) => {
   try {
     const { deviceId } = await validateDevice(req);
 
-    if (!req.file || !req.file.buffer) {
+    if (!req.file || !req.file.path || !req.file.filename) {
       return res.status(400).json({ error: 'Missing multipart file field "image"' });
     }
 
-    // Convert image to base64 (do NOT store in Firestore; can exceed 1MB doc limit).
-    const imageBase64 = req.file.buffer.toString('base64');
+    const imageUrl = `https://iot-control-app.onrender.com/uploads/${req.file.filename}`;
+
+    await db.collection('device_images').add({
+      deviceId,
+      imageUrl,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // Convert image to base64 for AI stub (do NOT store in Firestore; can exceed 1MB doc limit).
+    const imageBytes = await fs.promises.readFile(req.file.path);
+    const imageBase64 = imageBytes.toString('base64');
 
     const result = await aiAnalyzeEnvironmentStub({ deviceId, imageBase64 });
 
