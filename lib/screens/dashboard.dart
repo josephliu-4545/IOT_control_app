@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../main.dart'; // for DashboardViewModel
+import '../models/environment_analysis.dart';
 import '../utils/constants.dart';
 import '../widgets/sensor_card.dart';
+import '../services/device_command_service.dart';
 import 'health.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -27,7 +29,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final viewModel = context.watch<DashboardViewModel>();
     final snapshot = viewModel.currentSnapshot;
     final isLoading = viewModel.isLoading;
-
+    final EnvironmentAnalysis? latestEnv = viewModel.latestEnvironmentAnalysis;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Smart Health Dashboard'),
@@ -50,6 +52,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               _buildHeader(context, snapshot, isLoading),
               const SizedBox(height: AppSpacing.md),
+
+              _buildEnvironmentAnalysisCard(context, latestEnv),
+              const SizedBox(height: AppSpacing.md),
+
               Expanded(
                 child: GridView.count(
                   crossAxisCount: 2,
@@ -198,7 +204,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               const SizedBox(height: AppSpacing.xs),
               Text(
                 isLoading
-                    ? 'Connecting to ESP32 / Blynk...'
+                    ? 'Connecting to ESP32 / Firebase...'
                     : (isOnline
                         ? 'Receiving real-time sensor data'
                         : 'Using fallback / dummy data'),
@@ -215,6 +221,121 @@ class _DashboardScreenState extends State<DashboardScreen> {
               height: 18,
               child: CircularProgressIndicator(strokeWidth: 2),
             ),
+        ],
+      ),
+    );
+  }
+
+    Widget _buildEnvironmentAnalysisCard(
+    BuildContext context,
+    EnvironmentAnalysis? analysis,
+  ) {
+    final theme = Theme.of(context);
+
+    final String risk = (analysis?.riskLevel?.isNotEmpty ?? false)
+        ? analysis!.riskLevel!
+        : '--';
+    final String lighting = (analysis?.lighting?.isNotEmpty ?? false)
+        ? analysis!.lighting!
+        : '--';
+    final String summary = (analysis?.summary?.isNotEmpty ?? false)
+        ? analysis!.summary!
+        : 'No environment analysis yet.';
+    final String hazardsText = (analysis == null || analysis.hazards.isEmpty)
+        ? '--'
+        : analysis.hazards.join(', ');
+
+    Future<void> onAnalyzePressed() async {
+      final messenger = ScaffoldMessenger.of(context);
+      try {
+        await DeviceCommandService().sendAnalyzeEnvironmentCommand();
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Analyze My Environment command sent.')),
+        );
+      } catch (e) {
+        messenger.showSnackBar(
+          SnackBar(content: Text('Failed to send command: $e')),
+        );
+      }
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+        color: AppColors.cardBackground,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.camera_outdoor, color: AppColors.textPrimary),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Text(
+                  'Environment Analysis',
+                  style: theme.textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w700),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Text(
+                  'Risk: $risk',
+                  style: theme.textTheme.labelMedium
+                      ?.copyWith(color: AppColors.textSecondary),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            summary,
+            style: theme.textTheme.bodyMedium
+                ?.copyWith(color: AppColors.textSecondary),
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Lighting: $lighting',
+                  style: theme.textTheme.bodySmall
+                      ?.copyWith(color: AppColors.textSecondary),
+                ),
+              ),
+              Text(
+                'Hazards: ${(analysis?.hazards.length ?? 0)}',
+                style: theme.textTheme.bodySmall
+                    ?.copyWith(color: AppColors.textSecondary),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            hazardsText == '--' ? 'Hazards: --' : 'Hazards: ${(analysis?.hazards.length ?? 0)}',
+            style: theme.textTheme.bodySmall
+                ?.copyWith(color: AppColors.textSecondary),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: AppSpacing.md),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: onAnalyzePressed,
+              icon: const Icon(Icons.analytics),
+              label: const Text('Analyze My Environment'),
+            ),
+          ),
         ],
       ),
     );
@@ -349,7 +470,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   const Text(
-                    'In the future this will send a command to Blynk/ESP32 to turn the camera on or off.',
+                    'In the future this will send a command to Firebase/ESP32 to turn the camera on or off.',
                   ),
                   const SizedBox(height: AppSpacing.lg),
                 ],

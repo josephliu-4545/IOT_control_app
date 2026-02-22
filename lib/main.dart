@@ -1,15 +1,23 @@
 // lib/main.dart
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
+import 'models/environment_analysis.dart';
+import 'models/snapshots.dart';
 import 'screens/dashboard.dart';
 import 'screens/health.dart';
-import 'services/blynk_service.dart';
+import 'services/firebase_iot_service.dart';
 import 'utils/constants.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  await FirebaseAuth.instance.signInAnonymously();
   runApp(const SmartHealthApp());
 }
 
@@ -26,8 +34,7 @@ class SmartHealthApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(
           create: (_) => DashboardViewModel(
-            blynkService: BlynkService(),
-            refreshInterval: const Duration(seconds: 2),
+            iotService: FirebaseIoTService(),
           ),
         ),
       ],
@@ -68,19 +75,25 @@ class SmartHealthApp extends StatelessWidget {
   }
 }
 
-/// ViewModel responsible for polling the BlynkService and exposing state.
+/// ViewModel responsible for subscribing to Firebase/Firestore streams and exposing state.
 class DashboardViewModel extends ChangeNotifier {
-  final BlynkService blynkService;
-  final Duration refreshInterval;
-  Timer? _timer;
+  final FirebaseIoTService iotService;
 
   SensorSnapshot? _currentSnapshot;
   List<int> _heartRateHistory = [];
   GlassesSnapshot? _glassesSnapshot;
+  EnvironmentAnalysis? _latestEnvironmentAnalysis;
+
+  StreamSubscription<SensorSnapshot>? _sensorSub;
+  StreamSubscription<GlassesSnapshot>? _glassesSub;
+  StreamSubscription<EnvironmentAnalysis>? _envSub;
 
   SensorSnapshot? get currentSnapshot => _currentSnapshot;
 
   GlassesSnapshot? get glassesSnapshot => _glassesSnapshot;
+
+  EnvironmentAnalysis? get latestEnvironmentAnalysis =>
+      _latestEnvironmentAnalysis;
 
   List<int> get heartRateHistory => List.unmodifiable(_heartRateHistory);
 
@@ -88,32 +101,52 @@ class DashboardViewModel extends ChangeNotifier {
   bool _isFetching = false;
 
   DashboardViewModel({
-    required this.blynkService,
-    required this.refreshInterval,
+    required this.iotService,
   }) {
-    _startPolling();
+    _startListening();
   }
 
-  void _startPolling() {
-    _fetchOnce();
-    _timer?.cancel();
-    _timer = Timer.periodic(refreshInterval, (_) => _fetchOnce());
-  }
-
-  Future<void> _fetchOnce() async {
+  void _startListening() {
     if (_isFetching) return;
     _isFetching = true;
     notifyListeners();
 
-    final snapshot = await blynkService.fetchSensorSnapshot();
-    final glasses = await blynkService.fetchGlassesSnapshot();
+    _sensorSub?.cancel();
+    _glassesSub?.cancel();
+    _envSub?.cancel();
 
-    _currentSnapshot = snapshot;
-    _glassesSnapshot = glasses;
-    _appendHeartRate(snapshot.heartRateBpm);
+    _sensorSub = iotService.streamLatestSensorSnapshot().listen(
+      (snapshot) {
+        _currentSnapshot = snapshot;
+        _appendHeartRate(snapshot.heartRateBpm);
+        _isFetching = false;
+        notifyListeners();
+      },
+      onError: (_) {
+        _isFetching = false;
+        notifyListeners();
+      },
+    );
 
-    _isFetching = false;
-    notifyListeners();
+    _glassesSub = iotService.streamLatestGlassesSnapshot().listen(
+      (snapshot) {
+        _glassesSnapshot = snapshot;
+        notifyListeners();
+      },
+      onError: (_) {
+        notifyListeners();
+      },
+    );
+
+    _envSub = iotService.streamLatestEnvironmentAnalysis().listen(
+      (analysis) {
+        _latestEnvironmentAnalysis = analysis;
+        notifyListeners();
+      },
+      onError: (_) {
+        notifyListeners();
+      },
+    );
   }
 
   void _appendHeartRate(int value) {
@@ -127,7 +160,10 @@ class DashboardViewModel extends ChangeNotifier {
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _sensorSub?.cancel();
+    _glassesSub?.cancel();
+    _envSub?.cancel();
     super.dispose();
   }
 }
+

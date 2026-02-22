@@ -1,0 +1,46 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // User-device access mapping (you can manage this from an admin panel)
+    match /user_devices/{uid}/devices/{deviceId} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    // Commands are created by authenticated users only
+    match /device_commands/{commandId} {
+      allow read: if false;
+
+      allow create: if isSignedIn()
+        && request.resource.data.deviceId is string
+        && exists(/databases/$(database)/documents/user_devices/$(request.auth.uid)/devices/$(request.resource.data.deviceId));
+
+      allow update, delete: if false;
+    }
+
+    // Analyses are readable by any authenticated user
+    match /environment_analysis/{docId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
+    match /heart_rate_analysis/{docId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
+    // Telemetry is backend-only
+    match /heart_rate_telemetry/{docId} {
+      allow read, write: if false;
+    }
+
+    // Devices collection is managed by admins/backends only
+    match /devices/{deviceId} {
+      allow read, write: if false;
+    }
+  }
+}
