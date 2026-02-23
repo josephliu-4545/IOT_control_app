@@ -95,9 +95,23 @@ async function analyzeImageWithHF(imageBuffer) {
     const base64 = imageBuffer.toString('base64');
 
     const response = await axios.post(
-      'https://router.huggingface.co/hf-inference/models/google/vit-base-patch16-224',
+      'https://router.huggingface.co/hf-inference/models/google/owlvit-base-patch32',
       {
-        inputs: base64,
+        inputs: {
+          image: `data:image/jpeg;base64,${base64}`,
+          text_queries: [
+            'knife',
+            'fire',
+            'stairs',
+            'cable',
+            'water spill',
+            'broken glass',
+            'smoke',
+            'gun',
+            'open flame',
+            'scissors',
+          ],
+        },
       },
       {
         headers: {
@@ -349,22 +363,25 @@ app.post('/device/upload-image', upload.single('image'), async (req, res) => {
         risk_level: 'unknown',
       };
     } else {
-      const labels = hfResult.slice(0, 5).map((p) => p.label);
-
-      const hazards = labels.filter((label) =>
-        ['knife', 'fire', 'flame', 'gun', 'weapon', 'water', 'electric'].some(
-          (keyword) => label.toLowerCase().includes(keyword)
+      const hazards = Array.from(
+        new Set(
+          hfResult
+            .filter((d) => (d?.score ?? 0) > 0.4)
+            .map((d) => d.label)
+            .filter(Boolean)
         )
       );
 
+      const riskLevel = hazards.length > 0 ? 'high' : 'low';
+
       result = {
-        lighting: labels.some((l) => l.toLowerCase().includes('dark'))
-          ? 'dim'
-          : 'normal',
+        lighting: 'unknown',
         hazards,
-        summary: `Detected objects: ${labels.join(', ')}`,
-        risk_level:
-          hazards.length > 2 ? 'high' : hazards.length > 0 ? 'medium' : 'low',
+        summary:
+          hazards.length > 0
+            ? `Hazards detected: ${hazards.join(', ')}`
+            : 'No major hazards detected.',
+        risk_level: riskLevel,
       };
     }
 
