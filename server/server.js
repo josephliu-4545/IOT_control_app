@@ -95,7 +95,7 @@ async function analyzeImageWithHF(imageBuffer) {
     const base64 = imageBuffer.toString('base64');
 
     const response = await axios.post(
-      'https://api-inference.huggingface.co/models/google/vit-base-patch16-224',
+      'https://router.huggingface.co/hf-inference/models/google/vit-base-patch16-224',
       {
         inputs: base64,
       },
