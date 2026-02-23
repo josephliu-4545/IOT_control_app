@@ -349,61 +349,22 @@ app.post('/device/upload-image', upload.single('image'), async (req, res) => {
         risk_level: 'unknown',
       };
     } else {
-      function normalizeLabel(raw) {
-        const original = String(raw || '').trim();
-        const lower = original.toLowerCase();
-        if (!lower) return '';
-
-        if (lower.includes('cat')) return 'cat';
-        if (lower.includes('tissue') || lower.includes('paper towel')) return 'tissue';
-        if (lower.includes('plunger')) return 'plunger';
-
-        return original;
-      }
-
-      const cleanedLabels = Array.from(
-        new Set(
-          hfResult
-            .filter((p) => (p?.score ?? 0) > 0.1)
-            .slice()
-            .sort((a, b) => (b?.score ?? 0) - (a?.score ?? 0))
-            .slice(0, 5)
-            .map((p) => normalizeLabel(p?.label))
-            .filter(Boolean)
-        )
-      );
-
-      const hazardKeywords = {
-        sharp: ['knife', 'scissors'],
-        fire: ['fire', 'flame', 'smoke'],
-        fall: ['stairs', 'ladder'],
-        trip: ['cable', 'wire'],
-        breakable: ['glass', 'bottle'],
-      };
-
-      const hazardSet = new Set();
-      for (const label of cleanedLabels) {
-        const lower = label.toLowerCase();
-        for (const [category, keywords] of Object.entries(hazardKeywords)) {
-          if (keywords.some((k) => lower.includes(k))) {
-            hazardSet.add(category);
-          }
-        }
-      }
-      const hazards = Array.from(hazardSet);
-
-      let riskLevel = 'low';
-      if (hazards.includes('fire') || hazards.includes('sharp')) {
-        riskLevel = 'high';
-      } else if (hazards.length > 0) {
-        riskLevel = 'medium';
-      }
+      const formattedLabels = hfResult
+        .slice()
+        .sort((a, b) => (b?.score ?? 0) - (a?.score ?? 0))
+        .slice(0, 7)
+        .map((p) => {
+          const label = String(p?.label ?? '').trim();
+          const score = Number(p?.score ?? 0);
+          return label ? `${label} (${score.toFixed(2)})` : '';
+        })
+        .filter(Boolean);
 
       result = {
         lighting: 'unknown',
-        hazards,
-        summary: `Detected objects: ${cleanedLabels.join(', ')}`,
-        risk_level: riskLevel,
+        hazards: [],
+        summary: `Detected objects: ${formattedLabels.join(', ')}`,
+        risk_level: 'low',
       };
     }
 
