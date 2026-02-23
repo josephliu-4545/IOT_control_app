@@ -350,22 +350,24 @@ app.post('/device/upload-image', upload.single('image'), async (req, res) => {
       };
     } else {
       function normalizeLabel(raw) {
-        const label = String(raw || '').toLowerCase();
-        if (!label) return '';
+        const original = String(raw || '').trim();
+        const lower = original.toLowerCase();
+        if (!lower) return '';
 
-        if (label.includes('cat')) return 'cat';
-        if (label.includes('tissue') || label.includes('paper')) return 'tissue';
-        if (label.includes('plunger') || label.includes('plumber')) return 'plunger';
-        return label;
+        if (lower.includes('cat')) return 'cat';
+        if (lower.includes('tissue') || lower.includes('paper towel')) return 'tissue';
+        if (lower.includes('plunger')) return 'plunger';
+
+        return original;
       }
 
       const cleanedLabels = Array.from(
         new Set(
           hfResult
-            .filter((p) => (p?.score ?? 0) > 0.15)
+            .filter((p) => (p?.score ?? 0) > 0.1)
             .slice()
             .sort((a, b) => (b?.score ?? 0) - (a?.score ?? 0))
-            .slice(0, 7)
+            .slice(0, 5)
             .map((p) => normalizeLabel(p?.label))
             .filter(Boolean)
         )
