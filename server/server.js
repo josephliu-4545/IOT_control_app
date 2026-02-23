@@ -95,7 +95,7 @@ async function analyzeImageWithHF(imageBuffer) {
     const base64 = imageBuffer.toString('base64');
 
     const response = await axios.post(
-      'https://router.huggingface.co/hf-inference/models/facebook/detr-resnet-50',
+      'https://router.huggingface.co/hf-inference/models/google/vit-base-patch16-224',
       {
         inputs: `data:image/jpeg;base64,${base64}`,
       },
@@ -349,38 +349,44 @@ app.post('/device/upload-image', upload.single('image'), async (req, res) => {
         risk_level: 'unknown',
       };
     } else {
-      const hazardKeywords = [
-        'knife',
-        'fire',
-        'scissors',
-        'gun',
-        'smoke',
-        'cable',
-        'stairs',
-        'glass',
-      ];
+      const objectLabels = hfResult
+        .slice()
+        .sort((a, b) => (b?.score ?? 0) - (a?.score ?? 0))
+        .filter((p) => (p?.score ?? 0) > 0.2)
+        .slice(0, 5)
+        .map((p) => (p?.label ?? '').toString())
+        .filter(Boolean);
 
-      const hazards = Array.from(
-        new Set(
-          hfResult
-            .filter((d) => (d?.score ?? 0) > 0.5)
-            .map((d) => (d?.label ?? '').toString())
-            .filter((label) => {
-              const lower = label.toLowerCase();
-              return hazardKeywords.some((k) => lower.includes(k));
-            })
-        )
-      );
+      const hazardKeywords = {
+        sharp: ['knife', 'scissors'],
+        fire: ['fire', 'flame', 'smoke'],
+        fall: ['stairs', 'ladder'],
+        trip: ['cable', 'wire'],
+        breakable: ['glass', 'bottle'],
+      };
 
-      const riskLevel = hazards.length > 0 ? 'high' : 'low';
+      const hazardSet = new Set();
+      for (const label of objectLabels) {
+        const lower = label.toLowerCase();
+        for (const [category, keywords] of Object.entries(hazardKeywords)) {
+          if (keywords.some((k) => lower.includes(k))) {
+            hazardSet.add(category);
+          }
+        }
+      }
+      const hazards = Array.from(hazardSet);
+
+      let riskLevel = 'low';
+      if (hazards.includes('fire') || hazards.includes('sharp')) {
+        riskLevel = 'high';
+      } else if (hazards.length > 0) {
+        riskLevel = 'medium';
+      }
 
       result = {
         lighting: 'unknown',
         hazards,
-        summary:
-          hazards.length > 0
-            ? `Hazards detected: ${hazards.join(', ')}`
-            : 'No major hazards detected.',
+        summary: `Detected objects: ${objectLabels.join(', ')}`,
         risk_level: riskLevel,
       };
     }
