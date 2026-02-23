@@ -10,7 +10,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
 import 'models/environment_analysis.dart';
 import 'models/snapshots.dart';
-import 'screens/dashboard.dart';
+import 'screens/dashboard.dart';  
 import 'screens/health.dart';
 import 'screens/live_dashboard.dart';
 import 'services/firebase_iot_service.dart';
@@ -110,6 +110,20 @@ class DashboardViewModel extends ChangeNotifier {
   DashboardViewModel({
     required this.iotService,
   }) {
+    print("DASHBOARD VIEWMODEL CREATED");
+    print("SUBSCRIBING ENV STREAM NOW");
+    _envSub?.cancel();
+    _envSub = iotService.streamLatestEnvironmentAnalysis().listen(
+      (analysis) {
+        print("ENV VM RECEIVED: $analysis");
+        _latestEnvironmentAnalysis = analysis;
+        notifyListeners();
+      },
+      onError: (e) {
+        print("ENV VM ERROR: $e");
+        notifyListeners();
+      },
+    );
     _startListening();
   }
 
@@ -120,7 +134,6 @@ class DashboardViewModel extends ChangeNotifier {
 
     _sensorSub?.cancel();
     _glassesSub?.cancel();
-    _envSub?.cancel();
 
     _sensorSub = iotService.streamLatestSensorSnapshot().listen(
       (snapshot) {
@@ -145,15 +158,6 @@ class DashboardViewModel extends ChangeNotifier {
       },
     );
 
-    _envSub = iotService.streamLatestEnvironmentAnalysis().listen(
-      (analysis) {
-        _latestEnvironmentAnalysis = analysis;
-        notifyListeners();
-      },
-      onError: (_) {
-        notifyListeners();
-      },
-    );
   }
 
   void _appendHeartRate(int value) {

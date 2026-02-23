@@ -79,6 +79,7 @@ class FirebaseIoTService {
   Stream<EnvironmentAnalysis> streamLatestEnvironmentAnalysis({
     String deviceId = 'esp32cam-001',
   }) {
+    print("ENTERED streamLatestEnvironmentAnalysis()");
     // Firestore may require a composite index for:
     // collection: environment_analysis, fields: deviceId (ASC), createdAt (DESC).
     return _firestore
@@ -87,8 +88,9 @@ class FirebaseIoTService {
         .orderBy('createdAt', descending: true)
         .limit(1)
         .snapshots()
-        .map((snap) {
-      if (snap.docs.isEmpty) {
+        .map((snapshot) {
+      print("ENV SNAPSHOT LENGTH: ${snapshot.docs.length}");
+      if (snapshot.docs.isEmpty) {
         return EnvironmentAnalysis(
           deviceId: deviceId,
           imageUrl: null,
@@ -99,7 +101,8 @@ class FirebaseIoTService {
         );
       }
 
-      final data = snap.docs.first.data();
+      print("ENV DOC DATA: ${snapshot.docs.first.data()}");
+      final data = snapshot.docs.first.data();
       return EnvironmentAnalysis.fromFirestore(data: data);
     });
   }

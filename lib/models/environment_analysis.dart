@@ -20,12 +20,12 @@ class EnvironmentAnalysis {
   factory EnvironmentAnalysis.fromFirestore({
     required Map<String, dynamic> data,
   }) {
-    final result = (data['result'] as Map?)?.cast<String, dynamic>() ?? const {};
+    final result = (data['result'] as Map?)?.cast<String, dynamic>() ??
+        const <String, dynamic>{};
 
-    final hazardsRaw = result['hazards'];
-    final hazards = hazardsRaw is List
-        ? hazardsRaw.map((e) => e.toString()).toList()
-        : const <String>[];
+    final hazards = List<String>.from(
+      (result['hazards'] as List?)?.map((e) => e.toString()) ?? const <String>[],
+    );
 
     return EnvironmentAnalysis(
       deviceId: (data['deviceId'] as String?) ?? '',

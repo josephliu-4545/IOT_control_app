@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const axios = require('axios');
 const multer = require('multer');
 const admin = require('firebase-admin');
 const fs = require('fs');
@@ -87,6 +88,27 @@ async function aiAnalyzeEnvironmentStub({ deviceId, imageBase64 }) {
     summary: 'AI stub: analysis not configured yet.',
     risk_level: 'unknown',
   };
+}
+
+async function analyzeImageWithHF(imageBuffer) {
+  try {
+    const response = await axios.post(
+      'https://api-inference.huggingface.co/models/google/vit-base-patch16-224',
+      imageBuffer,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.HF_TOKEN}`,
+          'Content-Type': 'application/octet-stream',
+        },
+        timeout: 30000,
+      }
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error('HF ERROR:', error.response?.data || error.message);
+    return null;
+  }
 }
 
 function analyzeHeartRate({ bpm, prevBpm }) {
@@ -307,7 +329,36 @@ app.post('/device/upload-image', upload.single('image'), async (req, res) => {
     const imageBytes = await fs.promises.readFile(req.file.path);
     const imageBase64 = imageBytes.toString('base64');
 
-    const result = await aiAnalyzeEnvironmentStub({ deviceId, imageBase64 });
+    const hfResult = await analyzeImageWithHF(imageBytes);
+
+    let result;
+
+    if (!hfResult || !Array.isArray(hfResult)) {
+      result = {
+        lighting: 'unknown',
+        hazards: [],
+        summary: 'AI failed to analyze image.',
+        risk_level: 'unknown',
+      };
+    } else {
+      const labels = hfResult.slice(0, 5).map((p) => p.label);
+
+      const hazards = labels.filter((label) =>
+        ['knife', 'fire', 'flame', 'gun', 'weapon', 'water', 'electric'].some(
+          (keyword) => label.toLowerCase().includes(keyword)
+        )
+      );
+
+      result = {
+        lighting: labels.some((l) => l.toLowerCase().includes('dark'))
+          ? 'dim'
+          : 'normal',
+        hazards,
+        summary: `Detected objects: ${labels.join(', ')}`,
+        risk_level:
+          hazards.length > 2 ? 'high' : hazards.length > 0 ? 'medium' : 'low',
+      };
+    }
 
     const analysisRef = await db.collection('environment_analysis').add({
       deviceId,

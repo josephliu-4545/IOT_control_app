@@ -31,6 +31,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final snapshot = viewModel.currentSnapshot;
     final isLoading = viewModel.isLoading;
     final EnvironmentAnalysis? latestEnv = viewModel.latestEnvironmentAnalysis;
+    print("ENV MODEL: $latestEnv");
     return Scaffold(
       appBar: AppBar(
         title: const Text('Smart Health Dashboard'),
@@ -240,25 +241,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   ) {
     final theme = Theme.of(context);
 
-    final bool hasAnalysis =
-        (analysis?.riskLevel?.isNotEmpty ?? false) ||
-        (analysis?.lighting?.isNotEmpty ?? false) ||
-        (analysis?.summary?.isNotEmpty ?? false) ||
-        (analysis?.hazards.isNotEmpty ?? false);
-
-    final String risk = (analysis?.riskLevel?.isNotEmpty ?? false)
-        ? analysis!.riskLevel!
-        : '--';
-    final String lighting = (analysis?.lighting?.isNotEmpty ?? false)
-        ? analysis!.lighting!
-        : '--';
-    final String summary = (analysis?.summary?.isNotEmpty ?? false)
-        ? analysis!.summary!
-        : 'No analysis yet. Tap Analyze to generate.';
-    final String hazardsText = (analysis == null || analysis.hazards.isEmpty)
-        ? 'None'
-        : analysis.hazards.join(', ');
-
     Future<void> onAnalyzePressed() async {
       final messenger = ScaffoldMessenger.of(context);
       try {
@@ -283,55 +265,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              const Icon(Icons.camera_outdoor, color: AppColors.textPrimary),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: Text(
-                  'Environment Analysis',
-                  style: theme.textTheme.titleMedium
-                      ?.copyWith(fontWeight: FontWeight.w700),
+          (analysis != null)
+              ? Text(
+                  'ENV FOUND: ${analysis.summary}',
+                  style: theme.textTheme.bodyMedium,
+                )
+              : Text(
+                  'ENV IS NULL',
+                  style: theme.textTheme.bodyMedium,
                 ),
-              ),
-              if (hasAnalysis)
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: Text(
-                    'Risk: $risk',
-                    style: theme.textTheme.labelMedium
-                        ?.copyWith(color: AppColors.textSecondary),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            summary,
-            style: theme.textTheme.bodyMedium
-                ?.copyWith(color: AppColors.textSecondary),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            'Lighting: $lighting',
-            style: theme.textTheme.bodySmall
-                ?.copyWith(color: AppColors.textSecondary),
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            'Hazards: $hazardsText',
-            style: theme.textTheme.bodySmall
-                ?.copyWith(color: AppColors.textSecondary),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
           const SizedBox(height: AppSpacing.md),
           SizedBox(
             width: double.infinity,
@@ -340,12 +282,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
               icon: const Icon(Icons.analytics),
               label: const Text('Analyze My Environment'),
             ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            'Test Upload (Postman): POST https://iot-control-app.onrender.com/device/upload-image (multipart field: image)',
-            style: theme.textTheme.bodySmall
-                ?.copyWith(color: AppColors.textSecondary),
           ),
         ],
       ),
