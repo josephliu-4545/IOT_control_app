@@ -95,7 +95,7 @@ async function analyzeImageWithHF(imageBuffer) {
     const base64 = imageBuffer.toString('base64');
 
     const response = await axios.post(
-      'https://router.huggingface.co/hf-inference/models/google/vit-base-patch16-224',
+      'https://router.huggingface.co/hf-inference/models/Salesforce/blip-image-captioning-large',
       {
         inputs: `data:image/jpeg;base64,${base64}`,
       },
@@ -349,13 +349,8 @@ app.post('/device/upload-image', upload.single('image'), async (req, res) => {
         risk_level: 'unknown',
       };
     } else {
-      const objectLabels = hfResult
-        .slice()
-        .sort((a, b) => (b?.score ?? 0) - (a?.score ?? 0))
-        .filter((p) => (p?.score ?? 0) > 0.2)
-        .slice(0, 5)
-        .map((p) => (p?.label ?? '').toString())
-        .filter(Boolean);
+      const caption = hfResult[0]?.generated_text || 'No description.';
+      const captionLower = caption.toLowerCase();
 
       const hazardKeywords = {
         sharp: ['knife', 'scissors'],
@@ -366,12 +361,9 @@ app.post('/device/upload-image', upload.single('image'), async (req, res) => {
       };
 
       const hazardSet = new Set();
-      for (const label of objectLabels) {
-        const lower = label.toLowerCase();
-        for (const [category, keywords] of Object.entries(hazardKeywords)) {
-          if (keywords.some((k) => lower.includes(k))) {
-            hazardSet.add(category);
-          }
+      for (const [category, keywords] of Object.entries(hazardKeywords)) {
+        if (keywords.some((k) => captionLower.includes(k))) {
+          hazardSet.add(category);
         }
       }
       const hazards = Array.from(hazardSet);
@@ -386,7 +378,7 @@ app.post('/device/upload-image', upload.single('image'), async (req, res) => {
       result = {
         lighting: 'unknown',
         hazards,
-        summary: `Detected objects: ${objectLabels.join(', ')}`,
+        summary: caption,
         risk_level: riskLevel,
       };
     }
