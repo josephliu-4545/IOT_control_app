@@ -95,23 +95,9 @@ async function analyzeImageWithHF(imageBuffer) {
     const base64 = imageBuffer.toString('base64');
 
     const response = await axios.post(
-      'https://router.huggingface.co/hf-inference/models/google/owlvit-base-patch32',
+      'https://router.huggingface.co/hf-inference/models/facebook/detr-resnet-50',
       {
-        inputs: {
-          image: `data:image/jpeg;base64,${base64}`,
-          candidate_labels: [
-            'knife',
-            'fire',
-            'stairs',
-            'cable',
-            'water spill',
-            'broken glass',
-            'smoke',
-            'gun',
-            'open flame',
-            'scissors',
-          ],
-        },
+        inputs: `data:image/jpeg;base64,${base64}`,
       },
       {
         headers: {
@@ -363,12 +349,26 @@ app.post('/device/upload-image', upload.single('image'), async (req, res) => {
         risk_level: 'unknown',
       };
     } else {
+      const hazardKeywords = [
+        'knife',
+        'fire',
+        'scissors',
+        'gun',
+        'smoke',
+        'cable',
+        'stairs',
+        'glass',
+      ];
+
       const hazards = Array.from(
         new Set(
           hfResult
-            .filter((d) => (d?.score ?? 0) > 0.4)
-            .map((d) => d.label)
-            .filter(Boolean)
+            .filter((d) => (d?.score ?? 0) > 0.5)
+            .map((d) => (d?.label ?? '').toString())
+            .filter((label) => {
+              const lower = label.toLowerCase();
+              return hazardKeywords.some((k) => lower.includes(k));
+            })
         )
       );
 
