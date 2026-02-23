@@ -1,42 +1,43 @@
-# Smart IoT Health Ecosystem (Flutter + Blynk)
+# Smart IoT Health Ecosystem (Flutter + Firebase + Render Backend)
 
-This Flutter app is a **dark, minimal Smart Health Dashboard** for an IoT system
-built around **ESP32** devices and **Blynk Cloud**. It currently simulates:
+This repository contains:
 
-- A **smart wristband** (heart-rate + SpO₂ + Wi‑Fi + battery + solar status)
-- A pair of **smart glasses** (camera control, environment monitoring,
-  connection status)
+- A **Flutter** app (Smart Health Dashboard)
+- A standalone **Node.js (Express)** backend (hosted on Render)
+- A **Firebase/Firestore** data layer for real-time updates and device command orchestration
 
-The app is designed to run entirely in **dummy mode** for development and
-testing, and can later be switched to **live mode** to read/write from real
-ESP32 hardware via Blynk.
+The system supports an end-to-end pipeline:
+
+1. Flutter sends an **analyze environment** command to Firestore (`device_commands`)
+2. Device uploads an image to the backend (`/device/upload-image`)
+3. Backend runs a HuggingFace model (currently **ViT**) and writes `environment_analysis`
+4. Flutter streams the latest analysis from Firestore and displays it on the dashboard
 
 ---
 
 ## Features
 
-- **Dashboard screen**
-  - System online/offline banner
-  - Heart Rate (BPM)
-  - Oxygen / SpO₂ (%)
-  - Wi‑Fi signal strength (%)
-  - Battery level (%) + solar charging status
-  - Smart glasses:
-    - Camera card with dummy toggle bottom sheet
-    - Environment card (ambient temperature around glasses)
-    - Link status card (connected/offline)
+- **Dashboard screen (Flutter)**
+  - Live sensor cards (heart rate, SpO₂, Wi‑Fi, battery, solar)
+  - Environment Analysis card (risk level, lighting, hazards, summary)
+  - Analyze button that writes a Firestore command
 
-- **Health screen**
-  - Large animated heart with live BPM
-  - Simple line chart (sparkline) of recent heart‑rate history
+- **Live Health Dashboard screen (Flutter)**
+  - Pull-to-refresh view backed by the Render backend `/device/dashboard`
+  - Shows latest reading + history + summary
+
+- **Backend (Node/Express on Render)**
+  - Device authentication via `x-device-id` and `x-device-token`
+  - Image uploads stored under `server/uploads` and served as `/uploads/...`
+  - Writes analysis results to Firestore (`environment_analysis`)
 
 - **Architecture**
-  - `BlynkService` encapsulates all HTTP access to the Blynk Cloud REST API
-  - `DashboardViewModel` (Provider + ChangeNotifier) polls Blynk every 2s and
-    exposes:
-    - `SensorSnapshot` (wristband vitals)
-    - `GlassesSnapshot` (smart glasses state)
-  - All UI stays in the `screens/` and `widgets/` layer.
+  - `DashboardViewModel` (Provider + ChangeNotifier) subscribes to Firestore streams
+  - `FirebaseIoTService` provides typed streams for:
+    - sensor snapshots
+    - glasses state
+    - environment analysis
+  - `DeviceCommandService` writes device commands to Firestore
 
 ---
 
@@ -45,76 +46,50 @@ ESP32 hardware via Blynk.
 ```text
 lib/
  ├── main.dart                # App entry, theme, Provider setup
+ ├── firebase_options.dart     # Firebase config (FlutterFire)
  ├── screens/
- │    ├── dashboard.dart      # Main dashboard + smart glasses UI
+ │    ├── dashboard.dart      # Main dashboard + environment analysis card
  │    ├── health.dart         # Animated heart + HR trend chart
+ │    ├── live_dashboard.dart # REST-backed dashboard screen
  ├── services/
- │    ├── blynk_service.dart  # Blynk Cloud read/write + dummy simulation
+ │    ├── firebase_iot_service.dart
+ │    ├── device_command_service.dart
+ │    ├── dashboard_api_service.dart
+ ├── models/
+ │    ├── environment_analysis.dart
+ │    ├── snapshots.dart
  ├── widgets/
  │    ├── sensor_card.dart    # Reusable neon metric card widget
  ├── utils/
- │    ├── constants.dart      # Colors, spacing, Blynk config
+ │    ├── constants.dart      # Colors + spacing
+
+server/
+ ├── server.js                # Express backend (Render)
+ ├── package.json             # Backend dependencies
+ └── uploads/                 # Uploaded images (served as /uploads)
 ```
 
 ---
 
-## Blynk & ESP32 Mapping
+## Firestore Collections
 
-All Blynk configuration lives in `lib/utils/constants.dart` under `BlynkConfig`.
+- `device_commands`
+  - Created by Flutter (Analyze button)
+  - Consumed by the device/backend pipeline
 
-### Mode switch
+- `environment_analysis`
+  - Written by backend after image upload + HF analysis
+  - Streamed by Flutter dashboard
 
-```dart
-class BlynkConfig {
-  // true  -> dummy data (no network calls)
-  // false -> live data from Blynk Cloud
-  static const bool useDummyData = true;
+- `heart_rate_analysis`
+  - Written by backend telemetry endpoint
 
-  static const String baseUrl = 'https://blynk.cloud/external/api';
-  static const String authToken = 'YOUR_BLYNK_AUTH_TOKEN';
-}
-```
-
-Change `useDummyData` to `false` and set a real `authToken` to enable live mode.
-
-### Wristband virtual pins
-
-These are read by `BlynkService.fetchSensorSnapshot()` and displayed on the
-dashboard and health screens:
-
-```dart
-// Wristband
-static const String pinHeartRate = 'V0';    // BPM
-static const String pinOxygen    = 'V1';    // SpO₂ %
-static const String pinWifi      = 'V2';    // Wi‑Fi signal %
-static const String pinBattery   = 'V3';    // Battery level %
-// Optional: add a solar pin (e.g. V4) for more precise solar status.
-```
-
-On the ESP32 wristband, write sensor values to these pins; the app will read
-them every 2 seconds.
-
-### Smart glasses virtual pins
-
-These are handled by `BlynkService.fetchGlassesSnapshot()` and
-`BlynkService.setGlassesCamera()`:
-
-```dart
-// Smart glasses
-static const String pinGlassesCamera      = 'V10'; // 0 = off, 1 = on
-static const String pinGlassesTemperature = 'V11'; // e.g. °C
-static const String pinGlassesLink        = 'V12'; // 0 = offline, 1 = connected
-```
-
-- Glasses ESP32 should **listen** on `V10` to toggle the camera/recording.
-- It should **write** ambient temperature to `V11` and link state to `V12`.
-
-In dummy mode these pins are **simulated** inside `BlynkService` and no network
-calls are made.
+- `device_images`
+  - Written by backend when an image is uploaded
 
 ---
 
-## Running the App
+## Running the Flutter App
 
 1. Install Flutter (3.x) and Dart SDK.
 2. From the project root, fetch dependencies:
@@ -129,8 +104,7 @@ calls are made.
    flutter run
    ```
 
-By default, the app runs in **dummy mode** (`useDummyData = true`) and
-generates realistic‑looking values without any hardware.
+Firebase is initialized with `DefaultFirebaseOptions.currentPlatform`.
 
 To run unit/widget tests:
 
@@ -140,38 +114,45 @@ flutter test
 
 ---
 
-## Switching to Live Blynk / ESP32 Hardware
+## Running the Backend (server/)
 
-When your ESP32 devices are ready:
+From `server/`:
 
-1. Update `BlynkConfig`:
+```bash
+npm install
+npm start
+```
 
-   ```dart
-   static const bool useDummyData = false;
-   static const String authToken = 'YOUR_REAL_BLYNK_TOKEN';
-   ```
+### Required environment variables
 
-2. Configure your Blynk template so that:
+- `HF_TOKEN`
+- One of:
+  - `FIREBASE_SERVICE_ACCOUNT_JSON`
+  - or `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`
 
-   - Wristband virtual pins match `V0–V3`.
-   - Glasses virtual pins match `V10–V12`.
+### Key endpoints
 
-3. Program the ESP32 devices to read/write those pins. The Flutter app will
-   start consuming **live data** through `BlynkService` without any UI changes.
+- `GET /health`
+- `GET /device/commands` (device polls for pending commands)
+- `POST /device/upload-image` (multipart field `image`)
+- `POST /device/telemetry/heart-rate`
+- `GET /device/dashboard`
 
-4. (Optional future step) Use `DashboardViewModel.setGlassesCamera(bool on)`
-   from the smart glasses camera bottom sheet to send real camera ON/OFF
-   commands via `V10`.
+All device endpoints require headers:
+
+- `x-device-id`
+- `x-device-token`
 
 ---
 
 ## Tech Stack
 
-- **Flutter 3.x** (Dart)
+- **Flutter** (Dart)
+- **Firebase**: `firebase_core`, `cloud_firestore`, `firebase_auth`
 - **State management:** Provider + ChangeNotifier
-- **API:** Blynk Cloud REST API (`http` package)
+- **Backend:** Node.js + Express + Firestore (firebase-admin)
+- **AI inference:** HuggingFace router API (currently `google/vit-base-patch16-224`)
 - **Fonts:** Google Fonts (Poppins)
-- **Style:** Dark, minimal, smartwatch‑inspired dashboard UI
 
 This project is structured to be easy to extend with additional IoT devices and
 virtual pins as your Smart Health Ecosystem grows.

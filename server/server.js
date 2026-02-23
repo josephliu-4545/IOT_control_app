@@ -349,12 +349,27 @@ app.post('/device/upload-image', upload.single('image'), async (req, res) => {
         risk_level: 'unknown',
       };
     } else {
-      const objectLabels = hfResult
-        .slice()
-        .sort((a, b) => (b?.score ?? 0) - (a?.score ?? 0))
-        .slice(0, 5)
-        .map((p) => (p?.label ?? '').toString())
-        .filter(Boolean);
+      function normalizeLabel(raw) {
+        const label = String(raw || '').toLowerCase();
+        if (!label) return '';
+
+        if (label.includes('cat')) return 'cat';
+        if (label.includes('tissue') || label.includes('paper')) return 'tissue';
+        if (label.includes('plunger') || label.includes('plumber')) return 'plunger';
+        return label;
+      }
+
+      const cleanedLabels = Array.from(
+        new Set(
+          hfResult
+            .filter((p) => (p?.score ?? 0) > 0.15)
+            .slice()
+            .sort((a, b) => (b?.score ?? 0) - (a?.score ?? 0))
+            .slice(0, 7)
+            .map((p) => normalizeLabel(p?.label))
+            .filter(Boolean)
+        )
+      );
 
       const hazardKeywords = {
         sharp: ['knife', 'scissors'],
@@ -365,7 +380,7 @@ app.post('/device/upload-image', upload.single('image'), async (req, res) => {
       };
 
       const hazardSet = new Set();
-      for (const label of objectLabels) {
+      for (const label of cleanedLabels) {
         const lower = label.toLowerCase();
         for (const [category, keywords] of Object.entries(hazardKeywords)) {
           if (keywords.some((k) => lower.includes(k))) {
@@ -385,7 +400,7 @@ app.post('/device/upload-image', upload.single('image'), async (req, res) => {
       result = {
         lighting: 'unknown',
         hazards,
-        summary: `Detected objects: ${objectLabels.join(', ')}`,
+        summary: `Detected objects: ${cleanedLabels.join(', ')}`,
         risk_level: riskLevel,
       };
     }
