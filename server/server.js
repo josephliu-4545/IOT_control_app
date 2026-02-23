@@ -99,7 +99,7 @@ async function analyzeImageWithHF(imageBuffer) {
       {
         inputs: {
           image: `data:image/jpeg;base64,${base64}`,
-          text_queries: [
+          candidate_labels: [
             'knife',
             'fire',
             'stairs',
