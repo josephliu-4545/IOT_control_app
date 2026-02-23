@@ -92,13 +92,17 @@ async function aiAnalyzeEnvironmentStub({ deviceId, imageBase64 }) {
 
 async function analyzeImageWithHF(imageBuffer) {
   try {
+    const base64 = imageBuffer.toString('base64');
+
     const response = await axios.post(
       'https://api-inference.huggingface.co/models/google/vit-base-patch16-224',
-      imageBuffer,
+      {
+        inputs: base64,
+      },
       {
         headers: {
           Authorization: `Bearer ${process.env.HF_TOKEN}`,
-          'Content-Type': 'application/octet-stream',
+          'Content-Type': 'application/json',
         },
         timeout: 30000,
       }
@@ -106,7 +110,11 @@ async function analyzeImageWithHF(imageBuffer) {
 
     return response.data;
   } catch (error) {
-    console.error('HF ERROR:', error.response?.data || error.message);
+    console.error('HF ERROR FULL:', {
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message,
+    });
     return null;
   }
 }
