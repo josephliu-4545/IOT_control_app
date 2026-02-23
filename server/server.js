@@ -353,12 +353,18 @@ app.post('/device/upload-image', upload.single('image'), async (req, res) => {
         .slice()
         .sort((a, b) => (b?.score ?? 0) - (a?.score ?? 0))
         .slice(0, 7)
-        .map((p) => {
-          const label = String(p?.label ?? '').trim();
+        .flatMap((p) => {
           const score = Number(p?.score ?? 0);
-          return label ? `${label} (${score.toFixed(2)})` : '';
-        })
-        .filter(Boolean);
+          const rawLabel = String(p?.label ?? '').trim();
+          if (!rawLabel) return [];
+
+          const labels = rawLabel
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean);
+
+          return labels.map((label) => `${label} (${score.toFixed(2)})`);
+        });
 
       result = {
         lighting: 'unknown',
