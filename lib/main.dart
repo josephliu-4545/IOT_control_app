@@ -13,7 +13,10 @@ import 'models/snapshots.dart';
 import 'screens/dashboard.dart';  
 import 'screens/health.dart';
 import 'screens/live_dashboard.dart';
+import 'screens/pulse_live.dart';
+import 'services/esp_pulse_service.dart';
 import 'services/firebase_iot_service.dart';
+import 'services/pulse_view_model.dart';
 import 'utils/constants.dart';
 
 void main() async {
@@ -41,6 +44,13 @@ class SmartHealthApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => DashboardViewModel(
             iotService: FirebaseIoTService(),
+          ),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => PulseViewModel(
+            service: EspPulseService(
+              endpoint: Uri.parse('http://ESP_IP'),
+            ),
           ),
         ),
       ],
@@ -76,6 +86,7 @@ class SmartHealthApp extends StatelessWidget {
           DashboardScreen.routeName: (_) => const DashboardScreen(),
           HealthScreen.routeName: (_) => const HealthScreen(),
           LiveDashboardScreen.routeName: (_) => const LiveDashboardScreen(),
+          PulseLiveScreen.routeName: (_) => const PulseLiveScreen(),
         },
       ),
     );
