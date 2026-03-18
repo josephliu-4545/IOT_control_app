@@ -9,7 +9,7 @@ import '../widgets/sensor_card.dart';
 import '../services/device_command_service.dart';
 import 'health.dart';
 import 'live_dashboard.dart';
-
+import 'pulse_live.dart';
 class DashboardScreen extends StatefulWidget {
   static const String routeName = '/';
 
@@ -36,6 +36,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
       appBar: AppBar(
         title: const Text('Smart Health Dashboard'),
         actions: [
+          IconButton(
+            tooltip: 'Pulse (ESP8266)',
+            icon: const Icon(Icons.show_chart),
+            onPressed: () {
+              Navigator.of(context).pushNamed(PulseLiveScreen.routeName);
+            },
+          ),
           IconButton(
             tooltip: 'Live dashboard',
             icon: const Icon(Icons.insights),

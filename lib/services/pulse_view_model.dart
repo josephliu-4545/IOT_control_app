@@ -4,6 +4,13 @@ import 'package:flutter/foundation.dart';
 
 import 'esp_pulse_service.dart';
 
+enum PulseConnectionState {
+  connecting,
+  connected,
+  noData,
+  error,
+}
+
 class PulseViewModel extends ChangeNotifier {
   final EspPulseService service;
   final Duration interval;
@@ -14,16 +21,32 @@ class PulseViewModel extends ChangeNotifier {
   int? _currentValue;
   final List<int> _history = [];
 
-  bool _isOnline = false;
-  String _statusText = 'Connecting...';
+  PulseConnectionState _connectionState = PulseConnectionState.connecting;
+  Object? _lastError;
+  DateTime? _lastSuccessAt;
 
   int? get currentValue => _currentValue;
 
   List<int> get history => List.unmodifiable(_history);
 
-  bool get isOnline => _isOnline;
+  PulseConnectionState get connectionState => _connectionState;
 
-  String get statusText => _statusText;
+  Object? get lastError => _lastError;
+
+  bool get isOnline => _connectionState == PulseConnectionState.connected;
+
+  String get statusText {
+    switch (_connectionState) {
+      case PulseConnectionState.connecting:
+        return 'Connecting...';
+      case PulseConnectionState.connected:
+        return 'Connected';
+      case PulseConnectionState.noData:
+        return 'No data yet';
+      case PulseConnectionState.error:
+        return _lastError == null ? 'Disconnected' : 'Error: ${_lastError.runtimeType}';
+    }
+  }
 
   PulseViewModel({
     required this.service,
@@ -45,12 +68,19 @@ class PulseViewModel extends ChangeNotifier {
       final value = await service.fetchRawPulseValue();
       _currentValue = value;
       _append(value);
-      _isOnline = true;
-      _statusText = 'Live from ESP8266';
+      _lastError = null;
+      _lastSuccessAt = DateTime.now();
+      _connectionState = PulseConnectionState.connected;
       notifyListeners();
     } catch (e) {
-      _isOnline = false;
-      _statusText = 'Offline: ${e.runtimeType}';
+      _lastError = e;
+      // If we have never succeeded, we are still "connecting".
+      if (_lastSuccessAt == null) {
+        _connectionState = PulseConnectionState.connecting;
+      } else {
+        // If we had a previous success, treat as error/disconnected.
+        _connectionState = PulseConnectionState.error;
+      }
       notifyListeners();
     }
   }

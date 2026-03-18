@@ -8,7 +8,11 @@ class EspPulseService {
   EspPulseService({required this.endpoint});
 
   Future<int> fetchRawPulseValue() async {
-    final response = await http.get(endpoint).timeout(const Duration(seconds: 2));
+    final response = await http
+        .get(endpoint)
+        .timeout(const Duration(seconds: 2), onTimeout: () {
+      throw TimeoutException('ESP request timed out');
+    });
 
     if (response.statusCode != 200) {
       throw StateError('ESP returned status ${response.statusCode}');
@@ -21,6 +25,8 @@ class EspPulseService {
       throw FormatException('Could not parse pulse value from: $raw');
     }
 
-    return int.parse(match.group(1)!);
+    final value = int.parse(match.group(1)!);
+    // ESP8266 ADC is usually 0..1023, but allow wider values just in case.
+    return value;
   }
 }
