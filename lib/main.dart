@@ -51,6 +51,8 @@ class SmartHealthApp extends StatelessWidget {
             service: EspPulseService(
               endpoint: Uri.parse('http://192.168.100.96/'),
             ),
+            enableFirestoreWrites: true,
+            deviceId: 'esp8266_pulse_01',
           ),
         ),
       ],
