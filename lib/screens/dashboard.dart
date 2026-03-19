@@ -73,7 +73,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   children: [
                     SensorCard(
                       title: 'Heart Rate',
-                      value: pulseViewModel.currentBpm == null ? 'Calculating...' : '${pulseViewModel.currentBpm} BPM',
+                      value: pulseViewModel.currentBpm == null ? (pulseViewModel.currentValue == null ? 'Calculating...' : '${pulseViewModel.currentValue} (raw)') : '${pulseViewModel.currentBpm} BPM',
                       unit: 'BPM',
                       icon: Icons.favorite,
                       accentColor: AppColors.accentRed,

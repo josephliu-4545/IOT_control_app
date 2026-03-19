@@ -22,6 +22,9 @@ class PulseViewModel extends ChangeNotifier {
   bool _isPolling = false;
   bool _pollInFlight = false;
 
+  DateTime? _lastDebugLogAt;
+  int _pollCount = 0;
+
   int? _currentValue;
   final List<int> _history = [];
 
@@ -70,6 +73,11 @@ class PulseViewModel extends ChangeNotifier {
     this.enableFirestoreWrites = false,
     this.deviceId = 'esp8266_pulse_01',
   }) {
+    if (kDebugMode) {
+      debugPrint(
+        '[PulseViewModel] created interval=${interval.inMilliseconds}ms enableFirestoreWrites=$enableFirestoreWrites deviceId=$deviceId endpoint=${service.endpoint}',
+      );
+    }
     start();
   }
 
@@ -86,6 +94,7 @@ class PulseViewModel extends ChangeNotifier {
     _pollInFlight = true;
     try {
       final value = await service.fetchRawPulseValue();
+      _pollCount++;
       _currentValue = value;
       _append(value);
       _updateBpm(value);
@@ -93,8 +102,22 @@ class PulseViewModel extends ChangeNotifier {
       _lastSuccessAt = DateTime.now();
       _connectionState = PulseConnectionState.connected;
       await _maybeWriteToFirestore();
+
+      if (kDebugMode) {
+        final now = DateTime.now();
+        final shouldLog =
+            _lastDebugLogAt == null || now.difference(_lastDebugLogAt!) >= const Duration(seconds: 2);
+        if (shouldLog) {
+          _lastDebugLogAt = now;
+          debugPrint(
+            '[PulseViewModel] poll#$_pollCount raw=$value bpm=${_currentBpm ?? '-'} online=$isOnline',
+          );
+        }
+      }
+
       notifyListeners();
     } catch (e) {
+      _pollCount++;
       _lastError = e;
       // If we have never succeeded, we are still "connecting".
       if (_lastSuccessAt == null) {
@@ -104,6 +127,19 @@ class PulseViewModel extends ChangeNotifier {
         _connectionState = PulseConnectionState.error;
       }
       await _maybeWriteToFirestore();
+
+      if (kDebugMode) {
+        final now = DateTime.now();
+        final shouldLog =
+            _lastDebugLogAt == null || now.difference(_lastDebugLogAt!) >= const Duration(seconds: 2);
+        if (shouldLog) {
+          _lastDebugLogAt = now;
+          debugPrint(
+            '[PulseViewModel] poll#$_pollCount ERROR=${e.runtimeType} online=$isOnline state=$_connectionState',
+          );
+        }
+      }
+
       notifyListeners();
     } finally {
       _pollInFlight = false;
@@ -186,7 +222,11 @@ class PulseViewModel extends ChangeNotifier {
     final avgRrMs = rrSumMs / rrCount;
     final bpm = (60000 / avgRrMs).round();
     if (bpm >= 30 && bpm <= 220) {
+      final prev = _currentBpm;
       _currentBpm = bpm;
+      if (kDebugMode && prev != bpm) {
+        debugPrint('[PulseViewModel] bpm update: $bpm');
+      }
     }
   }
 
