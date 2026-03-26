@@ -2,14 +2,17 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../config/api_config.dart';
 import '../main.dart'; // for DashboardViewModel
 import '../models/environment_analysis.dart';
+import '../services/environment_analysis_api_service.dart';
+import '../services/esp32_cam_service.dart';
 import '../utils/constants.dart';
 import '../widgets/sensor_card.dart';
-import '../services/device_command_service.dart';
 import 'health.dart';
 import 'live_dashboard.dart';
 import 'pulse_live.dart';
+
 class DashboardScreen extends StatefulWidget {
   static const String routeName = '/';
 
@@ -24,6 +27,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _glassesConnected = true;
   bool _glassesCameraOn = false;
   double _glassesTemperatureC = 26.5;
+
+  bool _isEnvAnalyzing = false;
 
   @override
   Widget build(BuildContext context) {
@@ -251,19 +256,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
     Future<void> onAnalyzePressed() async {
       final messenger = ScaffoldMessenger.of(context);
       try {
-        await DeviceCommandService().sendAnalyzeEnvironmentCommand();
+        if (_isEnvAnalyzing) return;
+        setState(() {
+          _isEnvAnalyzing = true;
+        });
+
+        final jpegBytes = await Esp32CamService().captureJpeg(
+          captureUrl: ApiConfig.esp32CamCaptureUrl,
+        );
+        await EnvironmentAnalysisApiService().uploadEnvironmentImage(
+          jpegBytes: jpegBytes,
+        );
+
         messenger.showSnackBar(
-          const SnackBar(content: Text('Analyze My Environment command sent.')),
+          const SnackBar(content: Text('Environment image uploaded for analysis.')),
         );
       } catch (e) {
         messenger.showSnackBar(
-          SnackBar(content: Text('Failed to send command: $e')),
+          SnackBar(content: Text('Failed to analyze environment: $e')),
         );
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isEnvAnalyzing = false;
+          });
+        }
       }
     }
 
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
+
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.border),
@@ -272,11 +295,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: AspectRatio(
+              aspectRatio: 4 / 3,
+              child: Image.network(
+                ApiConfig.esp32CamStreamUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    color: AppColors.cardBackground,
+                    alignment: Alignment.center,
+                    child: Text(
+                      'Camera preview unavailable',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
           (analysis != null)
               ? Text(
                   'ENV FOUND: ${analysis.summary}',
                   style: theme.textTheme.bodyMedium,
                 )
+
               : Text(
                   'ENV IS NULL',
                   style: theme.textTheme.bodyMedium,
@@ -285,9 +332,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: onAnalyzePressed,
+              onPressed: _isEnvAnalyzing ? null : onAnalyzePressed,
               icon: const Icon(Icons.analytics),
-              label: const Text('Analyze My Environment'),
+              label: Text(
+                _isEnvAnalyzing ? 'Analyzing...' : 'Analyze My Environment',
+              ),
             ),
           ),
         ],
