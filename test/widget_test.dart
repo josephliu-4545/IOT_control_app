@@ -8,10 +8,11 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:iot_control_app/main.dart';
+import 'package:iot_control_app/services/offline_iot_service.dart';
 
 void main() {
   testWidgets('App builds without crashing', (WidgetTester tester) async {
-    await tester.pumpWidget(const SmartHealthApp());
+    await tester.pumpWidget(SmartHealthApp(iotService: OfflineIoTService()));
 
     // Basic smoke test: verify that the dashboard title is present.
     expect(find.text('Smart Health Dashboard'), findsOneWidget);

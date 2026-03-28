@@ -16,22 +16,52 @@ import 'screens/live_dashboard.dart';
 import 'screens/pulse_live.dart';
 import 'services/esp_pulse_service.dart';
 import 'services/firebase_iot_service.dart';
+import 'services/iot_service.dart';
+import 'services/offline_iot_service.dart';
 import 'services/pulse_view_model.dart';
 import 'utils/constants.dart';
+
+String? _tryExtractHostname(Object error) {
+  final s = error.toString();
+  final urlMatch = RegExp(r'https?://([^/\s:]+)', caseSensitive: false).firstMatch(s);
+  if (urlMatch != null) return urlMatch.group(1);
+
+  final hostMatch = RegExp(
+    r'(?:host(?:name)?|Host)\s*[:=]\s*([^\s\)\],]+)',
+    caseSensitive: false,
+  ).firstMatch(s);
+  if (hostMatch != null) return hostMatch.group(1);
+
+  return null;
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  IoTService iotService = OfflineIoTService();
 
-  await FirebaseAuth.instance.signInAnonymously();
-  runApp(const SmartHealthApp());
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    await FirebaseAuth.instance.signInAnonymously();
+    iotService = FirebaseIoTService();
+  } catch (e, st) {
+    final host = _tryExtractHostname(e);
+    print('FIREBASE INIT FAILED: $e');
+    if (host != null) {
+      print('FIREBASE/NETWORK HOSTNAME (best-effort): $host');
+    }
+    print(st);
+  }
+
+  runApp(SmartHealthApp(iotService: iotService));
 }
 
 class SmartHealthApp extends StatelessWidget {
-  const SmartHealthApp({super.key});
+  final IoTService iotService;
+
+  const SmartHealthApp({super.key, required this.iotService});
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +73,7 @@ class SmartHealthApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(
           create: (_) => DashboardViewModel(
-            iotService: FirebaseIoTService(),
+            iotService: iotService,
           ),
         ),
         ChangeNotifierProvider(
@@ -95,7 +125,7 @@ class SmartHealthApp extends StatelessWidget {
 
 /// ViewModel responsible for subscribing to Firebase/Firestore streams and exposing state.
 class DashboardViewModel extends ChangeNotifier {
-  final FirebaseIoTService iotService;
+  final IoTService iotService;
 
   SensorSnapshot? _currentSnapshot;
   List<int> _heartRateHistory = [];

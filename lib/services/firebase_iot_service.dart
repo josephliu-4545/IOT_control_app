@@ -3,13 +3,15 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/environment_analysis.dart';
 import '../models/snapshots.dart';
+import 'iot_service.dart';
 
-class FirebaseIoTService {
+class FirebaseIoTService implements IoTService {
   final FirebaseFirestore _firestore;
 
   FirebaseIoTService({FirebaseFirestore? firestore})
       : _firestore = firestore ?? FirebaseFirestore.instance;
 
+  @override
   Stream<SensorSnapshot> streamLatestSensorSnapshot({
     String deviceId = 'esp32cam-001',
   }) {
@@ -47,6 +49,7 @@ class FirebaseIoTService {
     });
   }
 
+  @override
   Stream<GlassesSnapshot> streamLatestGlassesSnapshot({
     String deviceId = 'esp32cam-001',
   }) {
@@ -76,6 +79,7 @@ class FirebaseIoTService {
     });
   }
 
+  @override
   Stream<EnvironmentAnalysis> streamLatestEnvironmentAnalysis({
     String deviceId = 'esp32cam-001',
   }) {
