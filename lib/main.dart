@@ -79,7 +79,7 @@ class SmartHealthApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => PulseViewModel(
             service: EspPulseService(
-              endpoint: Uri.parse('http://192.168.100.35/'),
+              endpoint: Uri.parse('http://192.168.20.71/'),
             ),
           ),
         ),
