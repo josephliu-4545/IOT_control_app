@@ -1,4 +1,7 @@
-// lib/screens/dashboard.dart
+﻿// lib/screens/dashboard.dart
+import 'dart:async';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -29,6 +32,55 @@ class _DashboardScreenState extends State<DashboardScreen> {
   double _glassesTemperatureC = 26.5;
 
   bool _isEnvAnalyzing = false;
+
+  bool _useCapturePreview = false;
+  Timer? _capturePreviewTimer;
+  Uint8List? _latestPreviewJpeg;
+  bool _isFetchingPreviewFrame = false;
+
+  @override
+  void initState() {
+    super.initState();
+    print('ESP32-CAM PREVIEW URL (stream): ${ApiConfig.esp32CamStreamUrl}');
+    print('ESP32-CAM PREVIEW URL (capture): ${ApiConfig.esp32CamCaptureUrl}');
+    _useCapturePreview = true;
+    print('ESP32-CAM PREVIEW MODE: capture (forced)');
+    _startCapturePreview();
+  }
+
+  @override
+  void dispose() {
+    _capturePreviewTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startCapturePreview() {
+    if (_capturePreviewTimer != null) return;
+    _capturePreviewTimer = Timer.periodic(
+      const Duration(milliseconds: 700),
+      (_) => _fetchPreviewFrame(),
+    );
+    _fetchPreviewFrame();
+  }
+
+  Future<void> _fetchPreviewFrame() async {
+    if (!mounted) return;
+    if (_isFetchingPreviewFrame) return;
+    _isFetchingPreviewFrame = true;
+    try {
+      final bytes = await Esp32CamService().captureJpeg(
+        captureUrl: ApiConfig.esp32CamCaptureUrl,
+      );
+      if (!mounted) return;
+      setState(() {
+        _latestPreviewJpeg = bytes;
+      });
+    } catch (e) {
+      print('ESP32-CAM CAPTURE PREVIEW ERROR: $e');
+    } finally {
+      _isFetchingPreviewFrame = false;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -102,7 +154,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       unit: '%',
                       icon: Icons.bubble_chart,
                       accentColor: AppColors.accentBlue,
-                      subtitle: 'SpO₂ level',
+                      subtitle: 'SpOâ‚‚ level',
                     ),
                     SensorCard(
                       title: 'Wi-Fi Signal',
@@ -153,7 +205,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     SensorCard(
                       title: 'Glasses Env',
                       value: '${_glassesTemperatureC.toStringAsFixed(1)}',
-                      unit: '°C',
+                      unit: 'Â°C',
                       icon: Icons.thermostat,
                       accentColor: AppColors.accentGreen,
                       subtitle: 'Ambient temperature',
@@ -299,22 +351,65 @@ class _DashboardScreenState extends State<DashboardScreen> {
             borderRadius: BorderRadius.circular(12),
             child: AspectRatio(
               aspectRatio: 4 / 3,
-              child: Image.network(
-                ApiConfig.esp32CamStreamUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    color: AppColors.cardBackground,
-                    alignment: Alignment.center,
-                    child: Text(
-                      'Camera preview unavailable',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
+              child: _useCapturePreview
+                  ? (_latestPreviewJpeg == null
+                      ? Container(
+                          color: AppColors.cardBackground,
+                          alignment: Alignment.center,
+                          child: const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        )
+                      : Image.memory(
+                          _latestPreviewJpeg!,
+                          fit: BoxFit.cover,
+                          gaplessPlayback: true,
+                          errorBuilder: (context, error, stackTrace) {
+                            print('ESP32-CAM PREVIEW Image.memory error: $error');
+                            return Container(
+                              color: AppColors.cardBackground,
+                              alignment: Alignment.center,
+                              child: Text(
+                                'Camera preview unavailable',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            );
+                          },
+                        ))
+                  : Image.network(
+                      ApiConfig.esp32CamStreamUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        print(
+                          'ESP32-CAM STREAM PREVIEW ERROR for ${ApiConfig.esp32CamStreamUrl}: $error',
+                        );
+
+                        if (!_useCapturePreview) {
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            if (!mounted) return;
+                            setState(() {
+                              _useCapturePreview = true;
+                            });
+                            _startCapturePreview();
+                          });
+                        }
+
+                        return Container(
+                          color: AppColors.cardBackground,
+                          alignment: Alignment.center,
+                          child: Text(
+                            'Camera preview unavailable',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                  );
-                },
-              ),
             ),
           ),
           const SizedBox(height: AppSpacing.md),
@@ -494,7 +589,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           title: const Text('Glasses environment'),
           content: Text(
             'Ambient temperature around smart glasses: '
-            '${_glassesTemperatureC.toStringAsFixed(1)}°C (dummy)',
+            '${_glassesTemperatureC.toStringAsFixed(1)}Â°C (dummy)',
           ),
         );
       },
