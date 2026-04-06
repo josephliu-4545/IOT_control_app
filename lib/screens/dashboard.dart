@@ -37,6 +37,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Timer? _capturePreviewTimer;
   Uint8List? _latestPreviewJpeg;
   bool _isFetchingPreviewFrame = false;
+  int _previewTick = 0;
 
   @override
   void initState() {
@@ -56,9 +57,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   void _startCapturePreview() {
     if (_capturePreviewTimer != null) return;
+    print('ESP32-CAM CAPTURE PREVIEW: starting timer (700ms)');
     _capturePreviewTimer = Timer.periodic(
       const Duration(milliseconds: 700),
-      (_) => _fetchPreviewFrame(),
+      (_) {
+        _previewTick += 1;
+        if (_previewTick % 10 == 0) {
+          print('ESP32-CAM CAPTURE PREVIEW: tick=$_previewTick');
+        }
+        _fetchPreviewFrame();
+      },
     );
     _fetchPreviewFrame();
   }
@@ -72,6 +80,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
         captureUrl: ApiConfig.esp32CamCaptureUrl,
       );
       if (!mounted) return;
+      if (bytes.isEmpty) {
+        print('ESP32-CAM CAPTURE PREVIEW: received EMPTY bytes');
+      } else {
+        print('ESP32-CAM CAPTURE PREVIEW: received ${bytes.length} bytes');
+      }
       setState(() {
         _latestPreviewJpeg = bytes;
       });
