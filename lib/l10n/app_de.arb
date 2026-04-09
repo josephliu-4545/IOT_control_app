@@ -1,0 +1,98 @@
+{
+  "appTitle": "Smartes Gesundheits-Dashboard",
+
+  "dashboardTitle": "Smartes Gesundheits-Dashboard",
+  "pulseTooltip": "Puls (ESP8266)",
+  "liveDashboardTooltip": "Live-Dashboard",
+  "healthDetailsTooltip": "Gesundheitsdetails",
+  "settingsTooltip": "Einstellungen",
+
+  "heartRate": "Herzfrequenz",
+  "oxygen": "Sauerstoff",
+  "spo2Level": "SpO₂-Wert",
+  "wifiSignal": "WLAN-Signal",
+  "battery": "Batterie",
+  "solar": "Solar",
+  "charging": "Lädt",
+  "idle": "Leerlauf",
+  "harvestingEnergy": "Energie wird gesammelt",
+  "noSolarInput": "Kein Solar-Eingang",
+  "waitingForData": "Warte auf Daten...",
+  "stable": "Stabil",
+
+  "systemOnline": "System online",
+  "systemOffline": "System offline",
+  "connectingToEsp32Firebase": "Verbinde mit ESP32 / Firebase...",
+  "receivingRealtimeSensorData": "Empfange Sensordaten in Echtzeit",
+  "usingFallbackDummyData": "Verwende Fallback-/Dummy-Daten",
+
+  "cameraPreviewUnavailable": "Kamera-Vorschau nicht verfügbar",
+
+  "glassesCamera": "Brillen-Kamera",
+  "glassesEnv": "Brillen-Umgebung",
+  "glassesLink": "Brillen-Verbindung",
+  "tapToToggleDummy": "Tippen zum Umschalten (Dummy)",
+  "ambientTemperature": "Umgebungstemperatur",
+  "on": "An",
+  "off": "Aus",
+  "connected": "Verbunden",
+  "offline": "Offline",
+  "smartGlassesStatus": "Status der smarten Brille",
+
+  "autoSpeakAnalysis": "Analyse automatisch vorlesen",
+  "speak": "Sprechen",
+  "stop": "Stopp",
+
+  "analyzeMyEnvironment": "Meine Umgebung analysieren",
+  "analyzing": "Analysiere...",
+  "environmentImageUploaded": "Umgebungsbild zur Analyse hochgeladen.",
+  "failedToAnalyzeEnvironment": "Umgebung konnte nicht analysiert werden: {error}",
+  "@failedToAnalyzeEnvironment": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+
+  "settingsTitle": "Einstellungen",
+  "language": "Sprache",
+
+  "liveHealthDashboardTitle": "Live Gesundheits-Dashboard",
+  "refresh": "Aktualisieren",
+  "failedToLoadDashboard": "Dashboard konnte nicht geladen werden",
+  "tryAgain": "Erneut versuchen",
+
+  "heartHealthTitle": "Herzgesundheit",
+  "realTimeHeartRateTrend": "Echtzeit-Herzfrequenzverlauf",
+
+  "pulseRawTitle": "Puls (ESP8266 Roh)",
+  "currentRaw": "AKTUELL ROH"
+  ,
+  "waitingForPulseData": "Warte auf ESP8266-Pulsdaten...",
+  "waitingForHeartRateData": "Warte auf Herzfrequenzdaten...",
+
+  "latestReading": "Letzte Messung",
+  "flags": "Markierungen: {flags}",
+  "@flags": {
+    "placeholders": {
+      "flags": {
+        "type": "String"
+      }
+    }
+  },
+  "summary": "Zusammenfassung",
+  "historyLastN": "Verlauf (letzte {count})",
+  "@historyLastN": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noReadingsYet": "Noch keine Messwerte.",
+  "noRecentReadings": "Keine aktuellen Messwerte.",
+  "critical": "Kritisch",
+  "warning": "Warnung",
+  "normal": "Normal"
+}

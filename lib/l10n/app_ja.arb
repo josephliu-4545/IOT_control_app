@@ -1,0 +1,98 @@
+{
+  "appTitle": "スマート健康ダッシュボード",
+
+  "dashboardTitle": "スマート健康ダッシュボード",
+  "pulseTooltip": "脈拍 (ESP8266)",
+  "liveDashboardTooltip": "ライブダッシュボード",
+  "healthDetailsTooltip": "健康の詳細",
+  "settingsTooltip": "設定",
+
+  "heartRate": "心拍数",
+  "oxygen": "酸素",
+  "spo2Level": "SpO₂ レベル",
+  "wifiSignal": "Wi‑Fi 信号",
+  "battery": "バッテリー",
+  "solar": "ソーラー",
+  "charging": "充電中",
+  "idle": "待機中",
+  "harvestingEnergy": "エネルギー収集中",
+  "noSolarInput": "ソーラー入力なし",
+  "waitingForData": "データ待機中...",
+  "stable": "安定",
+
+  "systemOnline": "システムオンライン",
+  "systemOffline": "システムオフライン",
+  "connectingToEsp32Firebase": "ESP32 / Firebase に接続中...",
+  "receivingRealtimeSensorData": "リアルタイムセンサーデータを受信中",
+  "usingFallbackDummyData": "フォールバック/ダミーデータを使用中",
+
+  "cameraPreviewUnavailable": "カメラプレビューが利用できません",
+
+  "glassesCamera": "メガネカメラ",
+  "glassesEnv": "メガネ環境",
+  "glassesLink": "メガネ接続",
+  "tapToToggleDummy": "タップして切り替え（ダミー）",
+  "ambientTemperature": "周囲温度",
+  "on": "オン",
+  "off": "オフ",
+  "connected": "接続済み",
+  "offline": "オフライン",
+  "smartGlassesStatus": "スマートグラスの状態",
+
+  "autoSpeakAnalysis": "分析を自動で読み上げ",
+  "speak": "読み上げ",
+  "stop": "停止",
+
+  "analyzeMyEnvironment": "環境を分析する",
+  "analyzing": "分析中...",
+  "environmentImageUploaded": "環境画像を分析用に送信しました。",
+  "failedToAnalyzeEnvironment": "環境の分析に失敗しました: {error}",
+  "@failedToAnalyzeEnvironment": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+
+  "settingsTitle": "設定",
+  "language": "言語",
+
+  "liveHealthDashboardTitle": "ライブ健康ダッシュボード",
+  "refresh": "更新",
+  "failedToLoadDashboard": "ダッシュボードの読み込みに失敗しました",
+  "tryAgain": "再試行",
+
+  "heartHealthTitle": "心臓の健康",
+  "realTimeHeartRateTrend": "リアルタイムの心拍数トレンド",
+
+  "pulseRawTitle": "脈拍 (ESP8266 生データ)",
+  "currentRaw": "現在のRAW"
+  ,
+  "waitingForPulseData": "ESP8266 の脈拍データを待っています...",
+  "waitingForHeartRateData": "心拍数データを待っています...",
+
+  "latestReading": "最新の測定",
+  "flags": "フラグ: {flags}",
+  "@flags": {
+    "placeholders": {
+      "flags": {
+        "type": "String"
+      }
+    }
+  },
+  "summary": "概要",
+  "historyLastN": "履歴（直近 {count} 件）",
+  "@historyLastN": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noReadingsYet": "まだ測定値がありません。",
+  "noRecentReadings": "最近の測定値はありません。",
+  "critical": "重大",
+  "warning": "警告",
+  "normal": "正常"
+}

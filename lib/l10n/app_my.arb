@@ -1,0 +1,98 @@
+{
+  "appTitle": "စမတ် ကျန်းမာရေး ဒက်ရှ်ဘုတ်",
+
+  "dashboardTitle": "စမတ် ကျန်းမာရေး ဒက်ရှ်ဘုတ်",
+  "pulseTooltip": "Pulse (ESP8266)",
+  "liveDashboardTooltip": "တိုက်ရိုက်ထုတ်လွှ Dashboard Tooltip",
+  "healthDetailsTooltip": "ကျန်းမာရေးအသေးစိတ်",
+  "settingsTooltip": "ဆက်တင်များ",
+
+  "heartRate": "နှလုံးခုန်နှုန်း",
+  "oxygen": "အောက်ဆီဂျင်",
+  "spo2Level": "SpO₂ အဆင့်",
+  "wifiSignal": "Wi-Fi Signal",
+  "battery": "ဘက်ထရီ",
+  "solar": "နေရောင်ခြည်",
+  "charging": "အားသွင်း",
+  "idle": "Idle",
+  "harvestingEnergy": "စွမ်းအင်ရိတ်သိမ်း",
+  "noSolarInput": "ဆိုလာထည့်သွင်းမှုမရှိ",
+  "waitingForData": "Waiting for data...",
+  "stable": "Stable",
+
+  "systemOnline": "System Online",
+  "systemOffline": "System Offline",
+  "connectingToEsp32Firebase": "Connecting to ESP32 / Firebase...",
+  "receivingRealtimeSensorData": "Receiving real-time sensor data",
+  "usingFallbackDummyData": "Using fallback / dummy data",
+
+  "cameraPreviewUnavailable": "ကင်မရာ အစမ်းကြည့်ရှုခြင်း မရနိုင်ပါ",
+
+  "glassesCamera": "Glasses Camera",
+  "glassesEnv": "Glasses Env",
+  "glassesLink": "Glasses Link",
+  "tapToToggleDummy": "Tap to toggle (dummy)",
+  "ambientTemperature": "Ambient temperature",
+  "on": "On",
+  "off": "Off",
+  "connected": "Connected",
+  "offline": "Offline",
+  "smartGlassesStatus": "Smart glasses status",
+
+  "autoSpeakAnalysis": "ခွဲခြမ်းစိတ်ဖြာချက်ကို အလိုအလျောက် ဖတ်ကြားရန်",
+  "speak": "ဖတ်ကြား",
+  "stop": "ရပ်မည်",
+
+  "analyzeMyEnvironment": "ပတ်ဝန်းကျင်ကို ခွဲခြမ်းစိတ်ဖြာရန်",
+  "analyzing": "ခွဲခြမ်းစိတ်ဖြာနေသည်...",
+  "environmentImageUploaded": "ပတ်ဝန်းကျင်ပုံကို ခွဲခြမ်းစိတ်ဖြာရန် ပို့ပြီးပါပြီ။",
+  "failedToAnalyzeEnvironment": "ပတ်ဝန်းကျင်ကို ခွဲခြမ်းစိတ်ဖြာ၍ မရပါ: {error}",
+  "@failedToAnalyzeEnvironment": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+
+  "settingsTitle": "ဆက်တင်များ",
+  "language": "ဘာသာစကား",
+
+  "liveHealthDashboardTitle": "တိုက်ရိုက် ကျန်းမာရေး ဒက်ရှ်ဘုတ်",
+  "refresh": "ပြန်လည်ရယူ",
+  "failedToLoadDashboard": "ဒက်ရှ်ဘုတ်ကို ဖွင့်၍ မရပါ",
+  "tryAgain": "ထပ်ကြိုးစား",
+
+  "heartHealthTitle": "နှလုံးကျန်းမာရေး",
+  "realTimeHeartRateTrend": "အချိန်နှင့်တပြေးညီ နှလုံးခုန်နှုန်း လမ်းကြောင်း",
+
+  "pulseRawTitle": "Pulse (ESP8266 Raw)",
+  "currentRaw": "လက်ရှိ RAW"
+  ,
+  "waitingForPulseData": "Waiting for ESP8266 pulse data...",
+  "waitingForHeartRateData": "Waiting for heart rate data...",
+
+  "latestReading": "Latest Reading",
+  "flags": "Flags: {flags}",
+  "@flags": {
+    "placeholders": {
+      "flags": {
+        "type": "String"
+      }
+    }
+  },
+  "summary": "Summary",
+  "historyLastN": "History (last {count})",
+  "@historyLastN": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noReadingsYet": "No readings yet.",
+  "noRecentReadings": "No recent readings.",
+  "critical": "Critical",
+  "warning": "Warning",
+  "normal": "Normal"
+}

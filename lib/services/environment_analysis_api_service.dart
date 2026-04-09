@@ -17,6 +17,7 @@ class EnvironmentAnalysisApiService {
     String baseUrl = ApiConfig.baseUrl,
     String deviceId = ApiConfig.deviceId,
     String deviceToken = ApiConfig.deviceToken,
+    String? languageTag,
     String? commandId,
   }) async {
     final uri = Uri.parse(baseUrl).replace(path: '/device/upload-image');
@@ -26,6 +27,10 @@ class EnvironmentAnalysisApiService {
       'x-device-id': deviceId,
       'x-device-token': deviceToken,
     });
+
+    if (languageTag != null && languageTag.trim().isNotEmpty) {
+      req.headers['x-lang'] = languageTag;
+    }
 
     if (commandId != null && commandId.isNotEmpty) {
       req.fields['commandId'] = commandId;

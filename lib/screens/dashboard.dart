@@ -6,10 +6,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../config/api_config.dart';
+import '../gen/app_localizations.dart';
 import '../main.dart'; // for DashboardViewModel
 import '../models/environment_analysis.dart';
 import '../services/environment_analysis_api_service.dart';
+import '../services/tts_service.dart';
 import '../services/esp32_cam_service.dart';
+import 'settings.dart';
 import '../utils/constants.dart';
 import '../widgets/sensor_card.dart';
 import 'health.dart';
@@ -26,10 +29,18 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
+
   // Local dummy state for smart glasses ecosystem.
   bool _glassesConnected = true;
   bool _glassesCameraOn = false;
   double _glassesTemperatureC = 26.5;
+
+  final TtsService _tts = TtsService();
+  bool _autoSpeakEnvAnalysis = true;
+  String? _lastSpokenEnvSummary;
+  bool _ttsReady = false;
+  String? _lastTtsLanguage;
+  bool _showedTtsWarning = false;
 
   bool _isEnvAnalyzing = false;
 
@@ -47,12 +58,93 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _useCapturePreview = true;
     print('ESP32-CAM PREVIEW MODE: capture (forced)');
     _startCapturePreview();
+
+    _initTts();
+  }
+
+  Future<void> _initTts() async {
+    try {
+      await _tts.initialize();
+      if (!mounted) return;
+      setState(() {
+        _ttsReady = true;
+      });
+    } catch (e) {
+      print('TTS INIT ERROR: $e');
+    }
+  }
+
+  Future<void> _maybeUpdateTtsLanguage(BuildContext context) async {
+    if (!_ttsReady) return;
+    final locale = Localizations.localeOf(context);
+    final tag = locale.toLanguageTag();
+    if (_lastTtsLanguage == tag) return;
+    _lastTtsLanguage = tag;
+
+    // Check if language is available and show warning if not
+    if (!_showedTtsWarning && !_tts.isLanguageAvailable(tag)) {
+      _showedTtsWarning = true;
+      final message = _tts.getLanguageAvailabilityMessage(tag);
+      if (message != null && mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _showTtsWarning(context, message);
+        });
+      }
+    }
+
+    await _tts.setLanguage(tag);
+  }
+
+  void _showTtsWarning(BuildContext context, String message) {
+    final theme = Theme.of(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white),
+        ),
+        backgroundColor: Colors.orange.shade800,
+        duration: const Duration(seconds: 6),
+        action: SnackBarAction(
+          label: 'Dismiss',
+          textColor: Colors.white,
+          onPressed: () {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          },
+        ),
+      ),
+    );
   }
 
   @override
   void dispose() {
     _capturePreviewTimer?.cancel();
+    _tts.stop();
     super.dispose();
+  }
+
+  Future<void> _speakEnvSummary(String text) async {
+    if (!_ttsReady) return;
+    final cleaned = text.trim();
+    if (cleaned.isEmpty) return;
+    await _tts.stop();
+    await _tts.speak(cleaned);
+  }
+
+  Future<void> _stopSpeaking() async {
+    if (!_ttsReady) return;
+    await _tts.stop();
+  }
+
+  void _maybeAutoSpeak(EnvironmentAnalysis? analysis) {
+    if (!_autoSpeakEnvAnalysis) return;
+    final summary = analysis?.summary;
+    if (summary == null) return;
+    final cleaned = summary.trim();
+    if (cleaned.isEmpty) return;
+    if (_lastSpokenEnvSummary == cleaned) return;
+    _lastSpokenEnvSummary = cleaned;
+    _speakEnvSummary(cleaned);
   }
 
   void _startCapturePreview() {
@@ -97,34 +189,50 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     final viewModel = context.watch<DashboardViewModel>();
     final snapshot = viewModel.currentSnapshot;
     final isLoading = viewModel.isLoading;
     final EnvironmentAnalysis? latestEnv = viewModel.latestEnvironmentAnalysis;
     print("ENV MODEL: $latestEnv");
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _maybeUpdateTtsLanguage(context);
+      _maybeAutoSpeak(latestEnv);
+    });
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Smart Health Dashboard'),
+        title: Text(l10n.dashboardTitle),
         actions: [
           IconButton(
-            tooltip: 'Pulse (ESP8266)',
+            tooltip: l10n.pulseTooltip,
             icon: const Icon(Icons.show_chart),
             onPressed: () {
               Navigator.of(context).pushNamed(PulseLiveScreen.routeName);
             },
           ),
           IconButton(
-            tooltip: 'Live dashboard',
+            tooltip: l10n.liveDashboardTooltip,
             icon: const Icon(Icons.insights),
             onPressed: () {
               Navigator.of(context).pushNamed(LiveDashboardScreen.routeName);
             },
           ),
           IconButton(
-            tooltip: 'Health details',
+            tooltip: l10n.healthDetailsTooltip,
             icon: const Icon(Icons.monitor_heart),
             onPressed: () {
               Navigator.of(context).pushNamed(HealthScreen.routeName);
+            },
+          ),
+          IconButton(
+            tooltip: l10n.settingsTooltip,
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              Navigator.of(context).pushNamed(SettingsScreen.routeName);
             },
           ),
           const SizedBox(width: AppSpacing.sm),
@@ -148,29 +256,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   childAspectRatio: 1.2,
                   children: [
                     SensorCard(
-                      title: 'Heart Rate',
+                      title: l10n.heartRate,
                       value: snapshot?.heartRateBpm.toString() ?? '--',
                       unit: 'BPM',
                       icon: Icons.favorite,
                       accentColor: AppColors.accentRed,
                       subtitle: snapshot == null
-                          ? 'Waiting for data...'
-                          : 'Stable',
+                          ? l10n.waitingForData
+                          : l10n.stable,
                       onTap: () {
                         Navigator.of(context)
                             .pushNamed(HealthScreen.routeName);
                       },
                     ),
                     SensorCard(
-                      title: 'Oxygen',
+                      title: l10n.oxygen,
                       value: snapshot?.oxygenPercent.toString() ?? '--',
                       unit: '%',
                       icon: Icons.bubble_chart,
                       accentColor: AppColors.accentBlue,
-                      subtitle: 'SpOâ‚‚ level',
+                      subtitle: l10n.spo2Level,
                     ),
                     SensorCard(
-                      title: 'Wi-Fi Signal',
+                      title: l10n.wifiSignal,
                       value: snapshot?.wifiSignal.toString() ?? '--',
                       unit: '%',
                       icon: Icons.wifi,
@@ -181,7 +289,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       onTap: () => _showWifiInfoDialog(context, snapshot),
                     ),
                     SensorCard(
-                      title: 'Battery',
+                      title: l10n.battery,
                       value: snapshot?.batteryLevel.toString() ?? '--',
                       unit: '%',
                       icon: Icons.battery_full,
@@ -192,46 +300,46 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       onTap: () => _showBatteryDetailsSheet(context, snapshot),
                     ),
                     SensorCard(
-                      title: 'Solar',
+                      title: l10n.solar,
                       value: snapshot == null
                           ? '--'
-                          : (snapshot.isChargingSolar ? 'Charging' : 'Idle'),
+                          : (snapshot.isChargingSolar ? l10n.charging : l10n.idle),
                       icon: Icons.wb_sunny,
                       accentColor: Colors.orangeAccent,
                       subtitle: snapshot == null
                           ? null
                           : (snapshot.isChargingSolar
-                              ? 'Harvesting energy'
-                              : 'No solar input'),
+                              ? l10n.harvestingEnergy
+                              : l10n.noSolarInput),
                       onTap: () => _showSolarInfoDialog(context, snapshot),
                     ),
                     // Smart glasses: camera control.
                     SensorCard(
-                      title: 'Glasses Camera',
-                      value: _glassesCameraOn ? 'On' : 'Off',
+                      title: l10n.glassesCamera,
+                      value: _glassesCameraOn ? l10n.on : l10n.off,
                       icon: Icons.videocam,
                       accentColor: AppColors.accentBlue,
-                      subtitle: 'Tap to toggle (dummy)',
+                      subtitle: l10n.tapToToggleDummy,
                       onTap: () => _showGlassesCameraSheet(context),
                     ),
                     // Smart glasses: environment / temperature monitor.
                     SensorCard(
-                      title: 'Glasses Env',
+                      title: l10n.glassesEnv,
                       value: '${_glassesTemperatureC.toStringAsFixed(1)}',
-                      unit: 'Â°C',
+                      unit: '°C',
                       icon: Icons.thermostat,
                       accentColor: AppColors.accentGreen,
-                      subtitle: 'Ambient temperature',
+                      subtitle: l10n.ambientTemperature,
                       onTap: () => _showGlassesEnvironmentDialog(context),
                     ),
                     // Smart glasses: connection status.
                     SensorCard(
-                      title: 'Glasses Link',
-                      value: _glassesConnected ? 'Connected' : 'Offline',
+                      title: l10n.glassesLink,
+                      value: _glassesConnected ? l10n.connected : l10n.offline,
                       icon: Icons.vrpano,
                       accentColor:
                           _glassesConnected ? AppColors.accentGreen : AppColors.accentRed,
-                      subtitle: 'Smart glasses status',
+                      subtitle: l10n.smartGlassesStatus,
                       onTap: () => _showGlassesConnectionDialog(context),
                     ),
                   ],
@@ -250,6 +358,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     bool isLoading,
   ) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final bool isOnline = snapshot?.isOnline ?? false;
 
     return Container(
@@ -281,7 +390,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                isOnline ? 'System Online' : 'System Offline',
+                isOnline ? l10n.systemOnline : l10n.systemOffline,
                 style: theme.textTheme.bodyLarge?.copyWith(
                   color: AppColors.textPrimary,
                   fontWeight: FontWeight.w600,
@@ -290,10 +399,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
               const SizedBox(height: AppSpacing.xs),
               Text(
                 isLoading
-                    ? 'Connecting to ESP32 / Firebase...'
+                    ? l10n.connectingToEsp32Firebase
                     : (isOnline
-                        ? 'Receiving real-time sensor data'
-                        : 'Using fallback / dummy data'),
+                        ? l10n.receivingRealtimeSensorData
+                        : l10n.usingFallbackDummyData),
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: AppColors.textSecondary,
                 ),
@@ -317,6 +426,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     EnvironmentAnalysis? analysis,
   ) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     Future<void> onAnalyzePressed() async {
       final messenger = ScaffoldMessenger.of(context);
@@ -326,19 +436,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
           _isEnvAnalyzing = true;
         });
 
+        final languageTag = Localizations.localeOf(context).toLanguageTag();
+
         final jpegBytes = await Esp32CamService().captureJpeg(
           captureUrl: ApiConfig.esp32CamCaptureUrl,
         );
         await EnvironmentAnalysisApiService().uploadEnvironmentImage(
           jpegBytes: jpegBytes,
+          languageTag: languageTag,
         );
 
         messenger.showSnackBar(
-          const SnackBar(content: Text('Environment image uploaded for analysis.')),
+          SnackBar(content: Text(l10n.environmentImageUploaded)),
         );
       } catch (e) {
         messenger.showSnackBar(
-          SnackBar(content: Text('Failed to analyze environment: $e')),
+          SnackBar(content: Text(l10n.failedToAnalyzeEnvironment(e.toString()))),
         );
       } finally {
         if (mounted) {
@@ -385,7 +498,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               color: AppColors.cardBackground,
                               alignment: Alignment.center,
                               child: Text(
-                                'Camera preview unavailable',
+                                l10n.cameraPreviewUnavailable,
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   color: AppColors.textSecondary,
                                 ),
@@ -415,7 +528,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           color: AppColors.cardBackground,
                           alignment: Alignment.center,
                           child: Text(
-                            'Camera preview unavailable',
+                            l10n.cameraPreviewUnavailable,
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: AppColors.textSecondary,
                             ),
@@ -437,13 +550,47 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   style: theme.textTheme.bodyMedium,
                 ),
           const SizedBox(height: AppSpacing.md),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(l10n.autoSpeakAnalysis),
+            value: _autoSpeakEnvAnalysis,
+            onChanged: (v) {
+              setState(() {
+                _autoSpeakEnvAnalysis = v;
+              });
+            },
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: (analysis?.summary == null ||
+                          (analysis!.summary ?? '').trim().isEmpty)
+                      ? null
+                      : () => _speakEnvSummary(analysis.summary!),
+                  icon: const Icon(Icons.volume_up),
+                  label: Text(l10n.speak),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _ttsReady ? _stopSpeaking : null,
+                  icon: const Icon(Icons.stop),
+                  label: Text(l10n.stop),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: _isEnvAnalyzing ? null : onAnalyzePressed,
               icon: const Icon(Icons.analytics),
               label: Text(
-                _isEnvAnalyzing ? 'Analyzing...' : 'Analyze My Environment',
+                _isEnvAnalyzing ? l10n.analyzing : l10n.analyzeMyEnvironment,
               ),
             ),
           ),

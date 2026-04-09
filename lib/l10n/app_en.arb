@@ -1,0 +1,101 @@
+{
+  "@appTitle": {
+    "description": "Application title"
+  },
+  "appTitle": "Smart Health Dashboard",
+
+  "dashboardTitle": "Smart Health Dashboard",
+  "pulseTooltip": "Pulse (ESP8266)",
+  "liveDashboardTooltip": "Live dashboard",
+  "healthDetailsTooltip": "Health details",
+  "settingsTooltip": "Settings",
+
+  "heartRate": "Heart Rate",
+  "oxygen": "Oxygen",
+  "spo2Level": "SpO₂ level",
+  "wifiSignal": "Wi-Fi Signal",
+  "battery": "Battery",
+  "solar": "Solar",
+  "charging": "Charging",
+  "idle": "Idle",
+  "harvestingEnergy": "Harvesting energy",
+  "noSolarInput": "No solar input",
+  "waitingForData": "Waiting for data...",
+  "stable": "Stable",
+
+  "systemOnline": "System Online",
+  "systemOffline": "System Offline",
+  "connectingToEsp32Firebase": "Connecting to ESP32 / Firebase...",
+  "receivingRealtimeSensorData": "Receiving real-time sensor data",
+  "usingFallbackDummyData": "Using fallback / dummy data",
+
+  "cameraPreviewUnavailable": "Camera preview unavailable",
+
+  "glassesCamera": "Glasses Camera",
+  "glassesEnv": "Glasses Env",
+  "glassesLink": "Glasses Link",
+  "tapToToggleDummy": "Tap to toggle (dummy)",
+  "ambientTemperature": "Ambient temperature",
+  "on": "On",
+  "off": "Off",
+  "connected": "Connected",
+  "offline": "Offline",
+  "smartGlassesStatus": "Smart glasses status",
+
+  "autoSpeakAnalysis": "Auto speak analysis",
+  "speak": "Speak",
+  "stop": "Stop",
+
+  "analyzeMyEnvironment": "Analyze My Environment",
+  "analyzing": "Analyzing...",
+  "environmentImageUploaded": "Environment image uploaded for analysis.",
+  "failedToAnalyzeEnvironment": "Failed to analyze environment: {error}",
+  "@failedToAnalyzeEnvironment": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+
+  "settingsTitle": "Settings",
+  "language": "Language",
+
+  "liveHealthDashboardTitle": "Live Health Dashboard",
+  "refresh": "Refresh",
+  "failedToLoadDashboard": "Failed to load dashboard",
+  "tryAgain": "Try again",
+
+  "heartHealthTitle": "Heart Health",
+  "realTimeHeartRateTrend": "Real-time heart rate trend",
+
+  "pulseRawTitle": "Pulse (ESP8266 Raw)",
+  "currentRaw": "CURRENT RAW"
+  ,
+  "waitingForPulseData": "Waiting for ESP8266 pulse data...",
+  "waitingForHeartRateData": "Waiting for heart rate data...",
+
+  "latestReading": "Latest Reading",
+  "flags": "Flags: {flags}",
+  "@flags": {
+    "placeholders": {
+      "flags": {
+        "type": "String"
+      }
+    }
+  },
+  "summary": "Summary",
+  "historyLastN": "History (last {count})",
+  "@historyLastN": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noReadingsYet": "No readings yet.",
+  "noRecentReadings": "No recent readings.",
+  "critical": "Critical",
+  "warning": "Warning",
+  "normal": "Normal"
+}

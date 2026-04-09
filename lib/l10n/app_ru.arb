@@ -1,0 +1,98 @@
+{
+  "appTitle": "Умная Панель Здоровья",
+
+  "dashboardTitle": "Умная Панель Здоровья",
+  "pulseTooltip": "Пульс (ESP8266)",
+  "liveDashboardTooltip": "Панель в реальном времени",
+  "healthDetailsTooltip": "Детали здоровья",
+  "settingsTooltip": "Настройки",
+
+  "heartRate": "Пульс",
+  "oxygen": "Кислород",
+  "spo2Level": "Уровень SpO₂",
+  "wifiSignal": "Сигнал Wi‑Fi",
+  "battery": "Батарея",
+  "solar": "Солнечная",
+  "charging": "Зарядка",
+  "idle": "Ожидание",
+  "harvestingEnergy": "Сбор энергии",
+  "noSolarInput": "Нет солнечного ввода",
+  "waitingForData": "Ожидание данных...",
+  "stable": "Стабильно",
+
+  "systemOnline": "Система онлайн",
+  "systemOffline": "Система офлайн",
+  "connectingToEsp32Firebase": "Подключение к ESP32 / Firebase...",
+  "receivingRealtimeSensorData": "Получение данных в реальном времени",
+  "usingFallbackDummyData": "Используются резервные/тестовые данные",
+
+  "cameraPreviewUnavailable": "Предпросмотр камеры недоступен",
+
+  "glassesCamera": "Камера очков",
+  "glassesEnv": "Среда очков",
+  "glassesLink": "Связь очков",
+  "tapToToggleDummy": "Нажмите, чтобы переключить (заглушка)",
+  "ambientTemperature": "Температура окружающей среды",
+  "on": "Вкл",
+  "off": "Выкл",
+  "connected": "Подключено",
+  "offline": "Офлайн",
+  "smartGlassesStatus": "Статус умных очков",
+
+  "autoSpeakAnalysis": "Автоматически озвучивать анализ",
+  "speak": "Озвучить",
+  "stop": "Стоп",
+
+  "analyzeMyEnvironment": "Проанализировать окружение",
+  "analyzing": "Анализ...",
+  "environmentImageUploaded": "Изображение окружения отправлено на анализ.",
+  "failedToAnalyzeEnvironment": "Не удалось проанализировать окружение: {error}",
+  "@failedToAnalyzeEnvironment": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+
+  "settingsTitle": "Настройки",
+  "language": "Язык",
+
+  "liveHealthDashboardTitle": "Живая Панель Здоровья",
+  "refresh": "Обновить",
+  "failedToLoadDashboard": "Не удалось загрузить панель",
+  "tryAgain": "Попробовать снова",
+
+  "heartHealthTitle": "Здоровье сердца",
+  "realTimeHeartRateTrend": "Тренд пульса в реальном времени",
+
+  "pulseRawTitle": "Пульс (ESP8266 Raw)",
+  "currentRaw": "ТЕКУЩИЙ RAW"
+  ,
+  "waitingForPulseData": "Ожидание данных пульса ESP8266...",
+  "waitingForHeartRateData": "Ожидание данных пульса...",
+
+  "latestReading": "Последнее измерение",
+  "flags": "Флаги: {flags}",
+  "@flags": {
+    "placeholders": {
+      "flags": {
+        "type": "String"
+      }
+    }
+  },
+  "summary": "Сводка",
+  "historyLastN": "История (последние {count})",
+  "@historyLastN": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noReadingsYet": "Пока нет измерений.",
+  "noRecentReadings": "Нет недавних измерений.",
+  "critical": "Критично",
+  "warning": "Предупреждение",
+  "normal": "Норма"
+}

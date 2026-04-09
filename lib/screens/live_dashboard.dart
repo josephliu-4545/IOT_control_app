@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../gen/app_localizations.dart';
 import '../services/dashboard_api_service.dart';
 import '../utils/constants.dart';
 
@@ -100,6 +101,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
 
   Widget _latestSection(Map<String, dynamic>? latest) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     if (latest == null) {
       return Container(
         padding: const EdgeInsets.all(AppSpacing.md),
@@ -109,7 +111,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
           color: AppColors.cardBackground,
         ),
         child: Text(
-          'No readings yet.',
+          l10n.noReadingsYet,
           style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
         ),
       );
@@ -136,7 +138,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
               const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: Text(
-                  'Latest Reading',
+                  l10n.latestReading,
                   style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
                 ),
               ),
@@ -157,7 +159,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
           ),
           const SizedBox(height: AppSpacing.sm),
           Text(
-            'Flags: $flags',
+            l10n.flags(flags),
             style: theme.textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
           ),
         ],
@@ -196,6 +198,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
 
   Widget _summarySection(Map<String, dynamic> summary) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     final critical = _asInt(summary['critical']);
     final warning = _asInt(summary['warning']);
@@ -212,7 +215,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Summary',
+            l10n.summary,
             style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: AppSpacing.sm),
@@ -220,7 +223,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
             children: [
               Expanded(
                 child: _summaryTile(
-                  label: 'Critical',
+                  label: l10n.critical,
                   value: '$critical',
                   color: Colors.red,
                 ),
@@ -228,7 +231,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
               const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: _summaryTile(
-                  label: 'Warning',
+                  label: l10n.warning,
                   value: '$warning',
                   color: Colors.orange,
                 ),
@@ -236,7 +239,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
               const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: _summaryTile(
-                  label: 'Normal',
+                  label: l10n.normal,
                   value: '$normal',
                   color: Colors.green,
                 ),
@@ -282,6 +285,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
 
   Widget _historySection(List<Map<String, dynamic>> history) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
@@ -294,13 +298,13 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'History (last 10)',
+            l10n.historyLastN(10),
             style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: AppSpacing.sm),
           if (history.isEmpty)
             Text(
-              'No recent readings.',
+              l10n.noRecentReadings,
               style: theme.textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
             )
           else
@@ -367,14 +371,15 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Live Health Dashboard'),
+        title: Text(l10n.liveHealthDashboardTitle),
         actions: [
           IconButton(
-            tooltip: 'Refresh',
+            tooltip: l10n.refresh,
             icon: const Icon(Icons.refresh),
             onPressed: _fetch,
           ),
@@ -404,7 +409,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Failed to load dashboard',
+                        l10n.failedToLoadDashboard,
                         style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
                       ),
                       const SizedBox(height: AppSpacing.sm),
@@ -418,7 +423,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
                         child: ElevatedButton.icon(
                           onPressed: _fetch,
                           icon: const Icon(Icons.refresh),
-                          label: const Text('Try again'),
+                          label: Text(l10n.tryAgain),
                         ),
                       ),
                     ],

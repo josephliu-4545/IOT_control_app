@@ -1,0 +1,98 @@
+{
+  "appTitle": "智能健康仪表盘",
+
+  "dashboardTitle": "智能健康仪表盘",
+  "pulseTooltip": "脉搏 (ESP8266)",
+  "liveDashboardTooltip": "实时仪表盘",
+  "healthDetailsTooltip": "健康详情",
+  "settingsTooltip": "设置",
+
+  "heartRate": "心率",
+  "oxygen": "血氧",
+  "spo2Level": "SpO₂ 水平",
+  "wifiSignal": "Wi‑Fi 信号",
+  "battery": "电池",
+  "solar": "太阳能",
+  "charging": "充电中",
+  "idle": "空闲",
+  "harvestingEnergy": "采集能量",
+  "noSolarInput": "无太阳能输入",
+  "waitingForData": "等待数据...",
+  "stable": "稳定",
+
+  "systemOnline": "系统在线",
+  "systemOffline": "系统离线",
+  "connectingToEsp32Firebase": "正在连接 ESP32 / Firebase...",
+  "receivingRealtimeSensorData": "正在接收实时传感器数据",
+  "usingFallbackDummyData": "正在使用备用/模拟数据",
+
+  "cameraPreviewUnavailable": "相机预览不可用",
+
+  "glassesCamera": "眼镜相机",
+  "glassesEnv": "眼镜环境",
+  "glassesLink": "眼镜连接",
+  "tapToToggleDummy": "点击切换（模拟）",
+  "ambientTemperature": "环境温度",
+  "on": "开",
+  "off": "关",
+  "connected": "已连接",
+  "offline": "离线",
+  "smartGlassesStatus": "智能眼镜状态",
+
+  "autoSpeakAnalysis": "自动朗读分析",
+  "speak": "朗读",
+  "stop": "停止",
+
+  "analyzeMyEnvironment": "分析我的环境",
+  "analyzing": "分析中...",
+  "environmentImageUploaded": "环境图片已上传用于分析。",
+  "failedToAnalyzeEnvironment": "环境分析失败：{error}",
+  "@failedToAnalyzeEnvironment": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+
+  "settingsTitle": "设置",
+  "language": "语言",
+
+  "liveHealthDashboardTitle": "实时健康仪表盘",
+  "refresh": "刷新",
+  "failedToLoadDashboard": "无法加载仪表盘",
+  "tryAgain": "重试",
+
+  "heartHealthTitle": "心脏健康",
+  "realTimeHeartRateTrend": "实时心率趋势",
+
+  "pulseRawTitle": "脉搏 (ESP8266 原始)",
+  "currentRaw": "当前原始值"
+  ,
+  "waitingForPulseData": "正在等待 ESP8266 脉搏数据...",
+  "waitingForHeartRateData": "正在等待心率数据...",
+
+  "latestReading": "最新读数",
+  "flags": "标记：{flags}",
+  "@flags": {
+    "placeholders": {
+      "flags": {
+        "type": "String"
+      }
+    }
+  },
+  "summary": "汇总",
+  "historyLastN": "历史记录（最近 {count} 条）",
+  "@historyLastN": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noReadingsYet": "暂无读数。",
+  "noRecentReadings": "没有最近读数。",
+  "critical": "严重",
+  "warning": "警告",
+  "normal": "正常"
+}

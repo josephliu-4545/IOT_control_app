@@ -1,0 +1,98 @@
+{
+  "appTitle": "Panel de Salud Inteligente",
+
+  "dashboardTitle": "Panel de Salud Inteligente",
+  "pulseTooltip": "Pulso (ESP8266)",
+  "liveDashboardTooltip": "Panel en vivo",
+  "healthDetailsTooltip": "Detalles de salud",
+  "settingsTooltip": "Ajustes",
+
+  "heartRate": "Frecuencia cardíaca",
+  "oxygen": "Oxígeno",
+  "spo2Level": "Nivel de SpO₂",
+  "wifiSignal": "Señal Wi‑Fi",
+  "battery": "Batería",
+  "solar": "Solar",
+  "charging": "Cargando",
+  "idle": "Inactivo",
+  "harvestingEnergy": "Recolectando energía",
+  "noSolarInput": "Sin entrada solar",
+  "waitingForData": "Esperando datos...",
+  "stable": "Estable",
+
+  "systemOnline": "Sistema en línea",
+  "systemOffline": "Sistema fuera de línea",
+  "connectingToEsp32Firebase": "Conectando a ESP32 / Firebase...",
+  "receivingRealtimeSensorData": "Recibiendo datos en tiempo real",
+  "usingFallbackDummyData": "Usando datos de respaldo",
+
+  "cameraPreviewUnavailable": "Vista previa de cámara no disponible",
+
+  "glassesCamera": "Cámara de gafas",
+  "glassesEnv": "Entorno de gafas",
+  "glassesLink": "Enlace de gafas",
+  "tapToToggleDummy": "Toca para alternar (simulado)",
+  "ambientTemperature": "Temperatura ambiente",
+  "on": "Encendido",
+  "off": "Apagado",
+  "connected": "Conectado",
+  "offline": "Sin conexión",
+  "smartGlassesStatus": "Estado de gafas inteligentes",
+
+  "autoSpeakAnalysis": "Hablar análisis automáticamente",
+  "speak": "Hablar",
+  "stop": "Detener",
+
+  "analyzeMyEnvironment": "Analizar mi entorno",
+  "analyzing": "Analizando...",
+  "environmentImageUploaded": "Imagen enviada para análisis del entorno.",
+  "failedToAnalyzeEnvironment": "No se pudo analizar el entorno: {error}",
+  "@failedToAnalyzeEnvironment": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+
+  "settingsTitle": "Ajustes",
+  "language": "Idioma",
+
+  "liveHealthDashboardTitle": "Panel de Salud en Vivo",
+  "refresh": "Actualizar",
+  "failedToLoadDashboard": "No se pudo cargar el panel",
+  "tryAgain": "Intentar de nuevo",
+
+  "heartHealthTitle": "Salud del corazón",
+  "realTimeHeartRateTrend": "Tendencia de ritmo cardíaco en tiempo real",
+
+  "pulseRawTitle": "Pulso (ESP8266 Raw)",
+  "currentRaw": "RAW ACTUAL"
+  ,
+  "waitingForPulseData": "Esperando datos de pulso de ESP8266...",
+  "waitingForHeartRateData": "Esperando datos de frecuencia cardíaca...",
+
+  "latestReading": "Última lectura",
+  "flags": "Indicadores: {flags}",
+  "@flags": {
+    "placeholders": {
+      "flags": {
+        "type": "String"
+      }
+    }
+  },
+  "summary": "Resumen",
+  "historyLastN": "Historial (últimos {count})",
+  "@historyLastN": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noReadingsYet": "Aún no hay lecturas.",
+  "noRecentReadings": "No hay lecturas recientes.",
+  "critical": "Crítico",
+  "warning": "Advertencia",
+  "normal": "Normal"
+}

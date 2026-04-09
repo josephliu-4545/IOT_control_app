@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../gen/app_localizations.dart';
 import '../main.dart';
 import '../utils/constants.dart';
 
@@ -43,6 +44,7 @@ class _HealthScreenState extends State<HealthScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final viewModel = context.watch<DashboardViewModel>();
     final snapshot = viewModel.currentSnapshot;
     final bpm = snapshot?.heartRateBpm ?? 0;
@@ -50,7 +52,7 @@ class _HealthScreenState extends State<HealthScreen>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Heart Health'),
+        title: Text(l10n.heartHealthTitle),
       ),
       body: SafeArea(
         child: Padding(
@@ -129,7 +131,7 @@ class _HealthScreenState extends State<HealthScreen>
               Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  'Real-time heart rate trend',
+                  l10n.realTimeHeartRateTrend,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: AppColors.textSecondary,
                       ),
@@ -150,6 +152,7 @@ class _HeartRateChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final hasData = values.isNotEmpty;
 
     return Container(
@@ -173,7 +176,7 @@ class _HeartRateChart extends StatelessWidget {
             )
           : Center(
               child: Text(
-                'Waiting for heart rate data...',
+                l10n.waitingForHeartRateData,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: AppColors.textSecondary,
                     ),

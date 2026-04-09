@@ -2,23 +2,27 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import 'firebase_options.dart';
+import 'gen/app_localizations.dart';
 import 'models/environment_analysis.dart';
 import 'models/snapshots.dart';
 import 'screens/dashboard.dart';  
 import 'screens/health.dart';
 import 'screens/live_dashboard.dart';
 import 'screens/pulse_live.dart';
+import 'screens/settings.dart';
 import 'services/esp_pulse_service.dart';
 import 'services/firebase_iot_service.dart';
 import 'services/iot_service.dart';
 import 'services/offline_iot_service.dart';
 import 'services/pulse_view_model.dart';
+import 'services/locale_provider.dart';
 import 'utils/constants.dart';
 
 String? _tryExtractHostname(Object error) {
@@ -72,6 +76,13 @@ class SmartHealthApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(
+          create: (_) {
+            final p = LocaleProvider();
+            p.init();
+            return p;
+          },
+        ),
+        ChangeNotifierProvider(
           create: (_) => DashboardViewModel(
             iotService: iotService,
           ),
@@ -84,9 +95,31 @@ class SmartHealthApp extends StatelessWidget {
           ),
         ),
       ],
-      child: MaterialApp(
+      child: Builder(
+        builder: (context) {
+          final localeProvider = context.watch<LocaleProvider>();
+          return MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'Smart Health Dashboard',
+        locale: localeProvider.locale,
+        supportedLocales: const [
+          Locale('en', 'US'),
+          Locale('my', 'MM'),
+          Locale('es', 'ES'),
+          Locale('fr', 'FR'),
+          Locale('de', 'DE'),
+          Locale('zh', 'CN'),
+          Locale('ja', 'JP'),
+          Locale('ru', 'RU'),
+          Locale('ar', 'SA'),
+          Locale('hi', 'IN'),
+        ],
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
         theme: ThemeData(
           brightness: Brightness.dark,
           scaffoldBackgroundColor: AppColors.background,
@@ -117,6 +150,9 @@ class SmartHealthApp extends StatelessWidget {
           HealthScreen.routeName: (_) => const HealthScreen(),
           LiveDashboardScreen.routeName: (_) => const LiveDashboardScreen(),
           PulseLiveScreen.routeName: (_) => const PulseLiveScreen(),
+          SettingsScreen.routeName: (_) => const SettingsScreen(),
+        },
+      );
         },
       ),
     );

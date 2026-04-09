@@ -90,6 +90,149 @@ async function aiAnalyzeEnvironmentStub({ deviceId, imageBase64 }) {
   };
 }
 
+// Language mapping for translation models
+const TRANSLATION_MODELS = {
+  'my': 'facebook/m2m100_418M',     // Burmese
+  'es': 'facebook/m2m100_418M',     // Spanish
+  'fr': 'facebook/m2m100_418M',     // French
+  'de': 'facebook/m2m100_418M',     // German
+  'zh': 'facebook/m2m100_418M',     // Chinese
+  'ja': 'facebook/m2m100_418M',     // Japanese
+  'ru': 'facebook/m2m100_418M',     // Russian
+  'ar': 'facebook/m2m100_418M',     // Arabic
+  'hi': 'facebook/m2m100_418M',     // Hindi
+};
+
+// Simple translations for common environment analysis terms
+// Fallback when HF translation fails or for offline use
+const TRANSLATION_FALLBACKS = {
+  'es': {
+    'Detected objects': 'Objetos detectados',
+    'AI failed to analyze image': 'La IA no pudo analizar la imagen',
+    'unknown': 'desconocido',
+    'low': 'bajo',
+    'medium': 'medio',
+    'high': 'alto',
+  },
+  'fr': {
+    'Detected objects': 'Objets détectés',
+    'AI failed to analyze image': 'L\'IA n\'a pas pu analyser l\'image',
+    'unknown': 'inconnu',
+    'low': 'faible',
+    'medium': 'moyen',
+    'high': 'élevé',
+  },
+  'de': {
+    'Detected objects': 'Erkannte Objekte',
+    'AI failed to analyze image': 'KI konnte das Bild nicht analysieren',
+    'unknown': 'unbekannt',
+    'low': 'niedrig',
+    'medium': 'mittel',
+    'high': 'hoch',
+  },
+  'zh': {
+    'Detected objects': '检测到的物体',
+    'AI failed to analyze image': 'AI 无法分析图像',
+    'unknown': '未知',
+    'low': '低',
+    'medium': '中',
+    'high': '高',
+  },
+  'ja': {
+    'Detected objects': '検出された物体',
+    'AI failed to analyze image': 'AI が画像を分析できませんでした',
+    'unknown': '不明',
+    'low': '低',
+    'medium': '中',
+    'high': '高',
+  },
+  'ru': {
+    'Detected objects': 'Обнаруженные объекты',
+    'AI failed to analyze image': 'ИИ не смог проанализировать изображение',
+    'unknown': 'неизвестно',
+    'low': 'низкий',
+    'medium': 'средний',
+    'high': 'высокий',
+  },
+  'ar': {
+    'Detected objects': 'الأجسام المكتشفة',
+    'AI failed to analyze image': 'فشل الذكاء الاصطناعي في تحليل الصورة',
+    'unknown': 'غير معروف',
+    'low': 'منخفض',
+    'medium': 'متوسط',
+    'high': 'عالي',
+  },
+  'hi': {
+    'Detected objects': 'पहचाने गए वस्तुएं',
+    'AI failed to analyze image': 'AI छवि का विश्लेषण करने में विफल रहा',
+    'unknown': 'अज्ञात',
+    'low': 'कम',
+    'medium': 'मध्यम',
+    'high': 'उच्च',
+  },
+  'my': {
+    'Detected objects': 'တွေ့ရှိသော အရာဝတ္ထုများ',
+    'AI failed to analyze image': 'AI သည် ပုံကို ခွဲခြမ်းစိတ်ဖြာရန် မအောင်မြင်ခဲ့ပါ',
+    'unknown': 'မသိရှိပါ',
+    'low': 'နိမ့်',
+    'medium': 'အလတ်',
+    'high': 'မြင့်',
+  },
+};
+
+async function translateText(text, targetLang) {
+  if (!text || targetLang === 'en' || targetLang === 'en-US') {
+    return text;
+  }
+
+  const langCode = targetLang.split('-')[0].toLowerCase();
+
+  // Try HF translation first
+  try {
+    const model = TRANSLATION_MODELS[langCode];
+    if (!model) {
+      throw new Error(`No translation model for ${langCode}`);
+    }
+
+    const response = await axios.post(
+      `https://router.huggingface.co/hf-inference/models/${model}`,
+      {
+        inputs: text,
+        parameters: {
+          src_lang: 'en',
+          tgt_lang: langCode,
+        },
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.HF_TOKEN}`,
+          'Content-Type': 'application/json',
+        },
+        timeout: 10000,
+      }
+    );
+
+    if (response.data && response.data[0] && response.data[0].translation_text) {
+      return response.data[0].translation_text;
+    }
+  } catch (error) {
+    console.error('HF Translation error:', error.message);
+  }
+
+  // Fallback to simple term replacement
+  const fallbackDict = TRANSLATION_FALLBACKS[langCode];
+  if (fallbackDict) {
+    let translated = text;
+    for (const [en, translatedTerm] of Object.entries(fallbackDict)) {
+      translated = translated.replace(new RegExp(en, 'gi'), translatedTerm);
+    }
+    return translated;
+  }
+
+  // Last resort: return original
+  return text;
+}
+
 async function analyzeImageWithHF(imageBuffer) {
   try {
     const base64 = imageBuffer.toString('base64');
@@ -341,11 +484,24 @@ app.post('/device/upload-image', upload.single('image'), async (req, res) => {
 
     let result;
 
+    // Get language from header (e.g., 'en-US', 'my-MM')
+    const langHeader = req.header('x-lang') || 'en-US';
+    const langCode = langHeader.split('-')[0].toLowerCase();
+
     if (!hfResult || !Array.isArray(hfResult)) {
+      // Translate error message if needed
+      let errorSummary = 'AI failed to analyze image.';
+      if (langCode !== 'en') {
+        try {
+          errorSummary = await translateText(errorSummary, langHeader);
+        } catch (e) {
+          // Keep English if translation fails
+        }
+      }
       result = {
         lighting: 'unknown',
         hazards: [],
-        summary: 'AI failed to analyze image.',
+        summary: errorSummary,
         risk_level: 'unknown',
       };
     } else {
@@ -366,10 +522,26 @@ app.post('/device/upload-image', upload.single('image'), async (req, res) => {
           return labels.map((label) => `${label} (${score.toFixed(2)})`);
         });
 
+      // Language already extracted above
+
+      // Build English summary first
+      const englishSummary = `Detected objects: ${formattedLabels.join(', ')}`;
+
+      // Translate if needed
+      let summary = englishSummary;
+      if (langCode !== 'en') {
+        try {
+          summary = await translateText(englishSummary, langHeader);
+        } catch (e) {
+          console.error('Translation failed:', e);
+          summary = englishSummary;
+        }
+      }
+
       result = {
         lighting: 'unknown',
         hazards: [],
-        summary: `Detected objects: ${formattedLabels.join(', ')}`,
+        summary: summary,
         risk_level: 'low',
       };
     }

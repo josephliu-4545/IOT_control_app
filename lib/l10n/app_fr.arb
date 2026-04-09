@@ -1,0 +1,98 @@
+{
+  "appTitle": "Tableau de Bord Santé",
+
+  "dashboardTitle": "Tableau de Bord Santé",
+  "pulseTooltip": "Pouls (ESP8266)",
+  "liveDashboardTooltip": "Tableau en direct",
+  "healthDetailsTooltip": "Détails santé",
+  "settingsTooltip": "Paramètres",
+
+  "heartRate": "Fréquence cardiaque",
+  "oxygen": "Oxygène",
+  "spo2Level": "Niveau SpO₂",
+  "wifiSignal": "Signal Wi‑Fi",
+  "battery": "Batterie",
+  "solar": "Solaire",
+  "charging": "En charge",
+  "idle": "Inactif",
+  "harvestingEnergy": "Collecte d'énergie",
+  "noSolarInput": "Pas d'entrée solaire",
+  "waitingForData": "En attente de données...",
+  "stable": "Stable",
+
+  "systemOnline": "Système en ligne",
+  "systemOffline": "Système hors ligne",
+  "connectingToEsp32Firebase": "Connexion à ESP32 / Firebase...",
+  "receivingRealtimeSensorData": "Réception des données en temps réel",
+  "usingFallbackDummyData": "Utilisation des données de secours",
+
+  "cameraPreviewUnavailable": "Aperçu de la caméra indisponible",
+
+  "glassesCamera": "Caméra des lunettes",
+  "glassesEnv": "Environnement des lunettes",
+  "glassesLink": "Lien des lunettes",
+  "tapToToggleDummy": "Appuyez pour basculer (factice)",
+  "ambientTemperature": "Température ambiante",
+  "on": "Activé",
+  "off": "Désactivé",
+  "connected": "Connecté",
+  "offline": "Hors ligne",
+  "smartGlassesStatus": "Statut des lunettes intelligentes",
+
+  "autoSpeakAnalysis": "Lire l'analyse automatiquement",
+  "speak": "Lire",
+  "stop": "Arrêter",
+
+  "analyzeMyEnvironment": "Analyser mon environnement",
+  "analyzing": "Analyse...",
+  "environmentImageUploaded": "Image envoyée pour analyse de l'environnement.",
+  "failedToAnalyzeEnvironment": "Échec de l'analyse de l'environnement : {error}",
+  "@failedToAnalyzeEnvironment": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+
+  "settingsTitle": "Paramètres",
+  "language": "Langue",
+
+  "liveHealthDashboardTitle": "Tableau de Bord Santé en Direct",
+  "refresh": "Actualiser",
+  "failedToLoadDashboard": "Impossible de charger le tableau de bord",
+  "tryAgain": "Réessayer",
+
+  "heartHealthTitle": "Santé du cœur",
+  "realTimeHeartRateTrend": "Tendance du rythme cardiaque en temps réel",
+
+  "pulseRawTitle": "Pouls (ESP8266 Brut)",
+  "currentRaw": "BRUT ACTUEL"
+  ,
+  "waitingForPulseData": "En attente des données de pouls ESP8266...",
+  "waitingForHeartRateData": "En attente des données de fréquence cardiaque...",
+
+  "latestReading": "Dernière mesure",
+  "flags": "Indicateurs : {flags}",
+  "@flags": {
+    "placeholders": {
+      "flags": {
+        "type": "String"
+      }
+    }
+  },
+  "summary": "Résumé",
+  "historyLastN": "Historique (derniers {count})",
+  "@historyLastN": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noReadingsYet": "Aucune mesure pour le moment.",
+  "noRecentReadings": "Aucune mesure récente.",
+  "critical": "Critique",
+  "warning": "Avertissement",
+  "normal": "Normal"
+}

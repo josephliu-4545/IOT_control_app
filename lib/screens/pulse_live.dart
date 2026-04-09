@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../gen/app_localizations.dart';
 import '../utils/constants.dart';
 import '../services/pulse_view_model.dart';
 
@@ -13,11 +14,12 @@ class PulseLiveScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final vm = context.watch<PulseViewModel>();
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Pulse (ESP8266 Raw)'),
+        title: Text(l10n.pulseRawTitle),
       ),
       body: SafeArea(
         child: Padding(
@@ -37,7 +39,7 @@ class PulseLiveScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'CURRENT RAW',
+                      l10n.currentRaw,
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
                             color: AppColors.textSecondary,
                             letterSpacing: 1.1,
@@ -82,6 +84,7 @@ class _PulseSparkline extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final hasData = values.length >= 2;
 
     return Container(
@@ -105,7 +108,7 @@ class _PulseSparkline extends StatelessWidget {
             )
           : Center(
               child: Text(
-                'Waiting for ESP8266 pulse data...',
+                l10n.waitingForPulseData,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: AppColors.textSecondary,
                     ),

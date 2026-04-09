@@ -1,0 +1,98 @@
+{
+  "appTitle": "لوحة الصحة الذكية",
+
+  "dashboardTitle": "لوحة الصحة الذكية",
+  "pulseTooltip": "النبض (ESP8266)",
+  "liveDashboardTooltip": "لوحة مباشرة",
+  "healthDetailsTooltip": "تفاصيل الصحة",
+  "settingsTooltip": "الإعدادات",
+
+  "heartRate": "معدل ضربات القلب",
+  "oxygen": "الأكسجين",
+  "spo2Level": "مستوى SpO₂",
+  "wifiSignal": "إشارة Wi‑Fi",
+  "battery": "البطارية",
+  "solar": "الطاقة الشمسية",
+  "charging": "قيد الشحن",
+  "idle": "خامل",
+  "harvestingEnergy": "جمع الطاقة",
+  "noSolarInput": "لا يوجد إدخال شمسي",
+  "waitingForData": "بانتظار البيانات...",
+  "stable": "مستقر",
+
+  "systemOnline": "النظام متصل",
+  "systemOffline": "النظام غير متصل",
+  "connectingToEsp32Firebase": "جارٍ الاتصال بـ ESP32 / Firebase...",
+  "receivingRealtimeSensorData": "استقبال بيانات المستشعر في الوقت الحقيقي",
+  "usingFallbackDummyData": "استخدام بيانات احتياطية/تجريبية",
+
+  "cameraPreviewUnavailable": "معاينة الكاميرا غير متاحة",
+
+  "glassesCamera": "كاميرا النظارات",
+  "glassesEnv": "بيئة النظارات",
+  "glassesLink": "اتصال النظارات",
+  "tapToToggleDummy": "اضغط للتبديل (تجريبي)",
+  "ambientTemperature": "درجة الحرارة المحيطة",
+  "on": "تشغيل",
+  "off": "إيقاف",
+  "connected": "متصل",
+  "offline": "غير متصل",
+  "smartGlassesStatus": "حالة النظارات الذكية",
+
+  "autoSpeakAnalysis": "نطق التحليل تلقائياً",
+  "speak": "تحدث",
+  "stop": "إيقاف",
+
+  "analyzeMyEnvironment": "تحليل البيئة",
+  "analyzing": "جارٍ التحليل...",
+  "environmentImageUploaded": "تم رفع صورة البيئة للتحليل.",
+  "failedToAnalyzeEnvironment": "فشل تحليل البيئة: {error}",
+  "@failedToAnalyzeEnvironment": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+
+  "settingsTitle": "الإعدادات",
+  "language": "اللغة",
+
+  "liveHealthDashboardTitle": "لوحة الصحة المباشرة",
+  "refresh": "تحديث",
+  "failedToLoadDashboard": "فشل تحميل اللوحة",
+  "tryAgain": "حاول مرة أخرى",
+
+  "heartHealthTitle": "صحة القلب",
+  "realTimeHeartRateTrend": "اتجاه نبض القلب في الوقت الحقيقي",
+
+  "pulseRawTitle": "النبض (ESP8266 Raw)",
+  "currentRaw": "RAW الحالي"
+  ,
+  "waitingForPulseData": "بانتظار بيانات نبض ESP8266...",
+  "waitingForHeartRateData": "بانتظار بيانات معدل ضربات القلب...",
+
+  "latestReading": "آخر قراءة",
+  "flags": "الإشارات: {flags}",
+  "@flags": {
+    "placeholders": {
+      "flags": {
+        "type": "String"
+      }
+    }
+  },
+  "summary": "الملخص",
+  "historyLastN": "السجل (آخر {count})",
+  "@historyLastN": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noReadingsYet": "لا توجد قراءات بعد.",
+  "noRecentReadings": "لا توجد قراءات حديثة.",
+  "critical": "حرج",
+  "warning": "تحذير",
+  "normal": "طبيعي"
+}

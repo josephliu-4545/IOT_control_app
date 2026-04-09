@@ -1,0 +1,91 @@
+{
+  "appTitle": "स्मार्ट हेल्थ डैशबोर्ड",
+
+  "dashboardTitle": "स्मार्ट हेल्थ डैशबोर्ड",
+  "pulseTooltip": "पल्स (ESP8266)",
+  "liveDashboardTooltip": "लाइव डैशबोर्ड",
+  "healthDetailsTooltip": "स्वास्थ्य विवरण",
+  "settingsTooltip": "सेटिंग्स",
+
+  "heartRate": "हृदय गति",
+  "oxygen": "ऑक्सीजन",
+  "spo2Level": "SpO₂ स्तर",
+  "wifiSignal": "Wi‑Fi सिग्नल",
+  "battery": "बैटरी",
+  "solar": "सोलर",
+  "charging": "चार्ज हो रहा है",
+  "idle": "निष्क्रिय",
+  "harvestingEnergy": "ऊर्जा एकत्रित हो रही है",
+  "noSolarInput": "कोई सोलर इनपुट नहीं",
+  "waitingForData": "डेटा की प्रतीक्षा...",
+  "stable": "स्थिर",
+
+  "systemOnline": "सिस्टम ऑनलाइन",
+  "systemOffline": "सिस्टम ऑफलाइन",
+  "connectingToEsp32Firebase": "ESP32 / Firebase से कनेक्ट हो रहा है...",
+  "receivingRealtimeSensorData": "रीयल-टाइम सेंसर डेटा प्राप्त हो रहा है",
+  "usingFallbackDummyData": "बैकअप/डमी डेटा उपयोग हो रहा है",
+
+  "cameraPreviewUnavailable": "कैमरा प्रीव्यू उपलब्ध नहीं",
+
+  "glassesCamera": "ग्लासेस कैमरा",
+  "glassesEnv": "ग्लासेस वातावरण",
+  "glassesLink": "ग्लासेस लिंक",
+  "tapToToggleDummy": "टैप करके बदलें (डमी)",
+  "ambientTemperature": "पर्यावरण तापमान",
+  "on": "चालू",
+  "off": "बंद",
+  "connected": "कनेक्टेड",
+  "offline": "ऑफलाइन",
+  "smartGlassesStatus": "स्मार्ट ग्लासेस स्थिति",
+
+  "autoSpeakAnalysis": "विश्लेषण स्वतः बोलें",
+  "speak": "बोलें",
+  "stop": "रोकें",
+
+  "analyzeMyEnvironment": "मेरा वातावरण विश्लेषित करें",
+  "analyzing": "विश्लेषण हो रहा है...",
+  "environmentImageUploaded": "वातावरण चित्र विश्लेषण के लिए अपलोड किया गया।",
+  "failedToAnalyzeEnvironment": "वातावरण विश्लेषण विफल: {error}",
+
+  "settingsTitle": "सेटिंग्स",
+  "language": "भाषा",
+
+  "liveHealthDashboardTitle": "लाइव हेल्थ डैशबोर्ड",
+  "refresh": "रिफ्रेश",
+  "failedToLoadDashboard": "डैशबोर्ड लोड नहीं हो सका",
+  "tryAgain": "फिर से प्रयास करें",
+
+  "heartHealthTitle": "हृदय स्वास्थ्य",
+  "realTimeHeartRateTrend": "रीयल-टाइम हार्ट रेट ट्रेंड",
+
+  "pulseRawTitle": "पल्स (ESP8266 Raw)",
+  "currentRaw": "वर्तमान RAW"
+  ,
+  "waitingForPulseData": "ESP8266 पल्स डेटा की प्रतीक्षा...",
+  "waitingForHeartRateData": "हृदय गति डेटा की प्रतीक्षा...",
+
+  "latestReading": "नवीनतम रीडिंग",
+  "flags": "फ़्लैग्स: {flags}",
+  "@flags": {
+    "placeholders": {
+      "flags": {
+        "type": "String"
+      }
+    }
+  },
+  "summary": "सारांश",
+  "historyLastN": "इतिहास (पिछले {count})",
+  "@historyLastN": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noReadingsYet": "अभी तक कोई रीडिंग नहीं।",
+  "noRecentReadings": "कोई हाल की रीडिंग नहीं।",
+  "critical": "गंभीर",
+  "warning": "चेतावनी",
+  "normal": "सामान्य"
+}
