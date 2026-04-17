@@ -524,19 +524,31 @@ app.post('/device/upload-image', upload.single('image'), async (req, res) => {
 
       // Language already extracted above
 
-      // Build English summary first
-      const englishSummary = `Detected objects: ${formattedLabels.join(', ')}`;
-
-      // Translate if needed
-      let summary = englishSummary;
-      if (langCode !== 'en') {
-        try {
-          summary = await translateText(englishSummary, langHeader);
-        } catch (e) {
-          console.error('Translation failed:', e);
-          summary = englishSummary;
-        }
-      }
+      // Translate individual object names for better results
+      const translatedLabels = await Promise.all(
+        formattedLabels.map(async (label) => {
+          // Extract object name (remove score part)
+          const match = label.match(/^(.+?)\s+\(/);
+          const objectName = match ? match[1] : label;
+          const scorePart = label.includes('(') ? label.substring(label.indexOf('(')) : '';
+          
+          if (langCode === 'en') {
+            return label; // No translation needed
+          }
+          
+          try {
+            const translatedName = await translateText(objectName, langHeader);
+            return `${translatedName}${scorePart}`;
+          } catch (e) {
+            console.error(`Failed to translate "${objectName}":`, e);
+            return label; // Keep original if translation fails
+          }
+        })
+      );
+      
+      // Build translated summary
+      const prefixText = langCode === 'en' ? 'Detected objects:' : await translateText('Detected objects:', langHeader);
+      const summary = `${prefixText} ${translatedLabels.join(', ')}`;
 
       result = {
         lighting: 'unknown',
