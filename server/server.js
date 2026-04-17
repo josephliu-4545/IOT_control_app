@@ -92,15 +92,15 @@ async function aiAnalyzeEnvironmentStub({ deviceId, imageBase64 }) {
 
 // Language mapping for translation models
 const TRANSLATION_MODELS = {
-  'my': 'facebook/m2m100_418M',     // Burmese
-  'es': 'facebook/m2m100_418M',     // Spanish
-  'fr': 'facebook/m2m100_418M',     // French
-  'de': 'facebook/m2m100_418M',     // German
-  'zh': 'facebook/m2m100_418M',     // Chinese
-  'ja': 'facebook/m2m100_418M',     // Japanese
-  'ru': 'facebook/m2m100_418M',     // Russian
-  'ar': 'facebook/m2m100_418M',     // Arabic
-  'hi': 'facebook/m2m100_418M',     // Hindi
+  'my': 'Helsinki-NLP/opus-mt-en-my',     // English to Burmese
+  'es': 'Helsinki-NLP/opus-mt-en-es',     // English to Spanish
+  'fr': 'Helsinki-NLP/opus-mt-en-fr',     // English to French
+  'de': 'Helsinki-NLP/opus-mt-en-de',     // English to German
+  'zh': 'Helsinki-NLP/opus-mt-en-zh',     // English to Chinese
+  'ja': 'Helsinki-NLP/opus-mt-en-ja',     // English to Japanese
+  'ru': 'Helsinki-NLP/opus-mt-en-ru',     // English to Russian
+  'ar': 'Helsinki-NLP/opus-mt-en-ar',     // English to Arabic
+  'hi': 'Helsinki-NLP/opus-mt-en-hi',     // English to Hindi
 };
 
 // Simple translations for common environment analysis terms
@@ -198,10 +198,6 @@ async function translateText(text, targetLang) {
       `https://router.huggingface.co/hf-inference/models/${model}`,
       {
         inputs: text,
-        parameters: {
-          src_lang: 'en',
-          tgt_lang: langCode,
-        },
       },
       {
         headers: {
