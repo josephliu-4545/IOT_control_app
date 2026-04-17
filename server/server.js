@@ -487,14 +487,18 @@ app.post('/device/upload-image', upload.single('image'), async (req, res) => {
     // Get language from header (e.g., 'en-US', 'my-MM')
     const langHeader = req.header('x-lang') || 'en-US';
     const langCode = langHeader.split('-')[0].toLowerCase();
+    console.log('Translation request - langHeader:', langHeader, 'langCode:', langCode);
 
     if (!hfResult || !Array.isArray(hfResult)) {
       // Translate error message if needed
       let errorSummary = 'AI failed to analyze image.';
       if (langCode !== 'en') {
         try {
+          console.log('Translating error message:', errorSummary);
           errorSummary = await translateText(errorSummary, langHeader);
+          console.log('Translated error message:', errorSummary);
         } catch (e) {
+          console.error('Error translation failed:', e);
           // Keep English if translation fails
         }
       }
@@ -524,6 +528,8 @@ app.post('/device/upload-image', upload.single('image'), async (req, res) => {
 
       // Language already extracted above
 
+      console.log('Original labels:', formattedLabels);
+      
       // Translate individual object names for better results
       const translatedLabels = await Promise.all(
         formattedLabels.map(async (label) => {
@@ -532,12 +538,16 @@ app.post('/device/upload-image', upload.single('image'), async (req, res) => {
           const objectName = match ? match[1] : label;
           const scorePart = label.includes('(') ? label.substring(label.indexOf('(')) : '';
           
+          console.log('Processing label:', label, 'objectName:', objectName);
+          
           if (langCode === 'en') {
             return label; // No translation needed
           }
           
           try {
+            console.log('Translating object:', objectName, 'to:', langHeader);
             const translatedName = await translateText(objectName, langHeader);
+            console.log('Translation result:', translatedName);
             return `${translatedName}${scorePart}`;
           } catch (e) {
             console.error(`Failed to translate "${objectName}":`, e);
@@ -546,9 +556,13 @@ app.post('/device/upload-image', upload.single('image'), async (req, res) => {
         })
       );
       
+      console.log('Translated labels:', translatedLabels);
+      
       // Build translated summary
       const prefixText = langCode === 'en' ? 'Detected objects:' : await translateText('Detected objects:', langHeader);
       const summary = `${prefixText} ${translatedLabels.join(', ')}`;
+      
+      console.log('Final translated summary:', summary);
 
       result = {
         lighting: 'unknown',
