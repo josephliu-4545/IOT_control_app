@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import 'esp_pulse_service.dart';
+import 'heart_rate_analytics_service.dart';
 
 enum PulseConnectionState {
   connecting,
@@ -14,6 +15,7 @@ enum PulseConnectionState {
 class PulseViewModel extends ChangeNotifier {
   final EspPulseService service;
   final Duration interval;
+  final HeartRateAnalyticsService analyticsService;
 
   Timer? _timer;
   bool _isPolling = false;
@@ -51,7 +53,8 @@ class PulseViewModel extends ChangeNotifier {
   PulseViewModel({
     required this.service,
     this.interval = const Duration(milliseconds: 500),
-  }) {
+    HeartRateAnalyticsService? analyticsService,
+  }) : this.analyticsService = analyticsService ?? HeartRateAnalyticsService() {
     start();
   }
 
@@ -65,15 +68,20 @@ class PulseViewModel extends ChangeNotifier {
 
   Future<void> _pollOnce() async {
     try {
-      final value = await service.fetchRawPulseValue();
+      final value = await service.fetchHeartRateBpm();
       _currentValue = value;
       _append(value);
+      
+      // Store to analytics database (fire-and-forget)
+      analyticsService.storeReading(value, isResting: value < 90);
+      
       _lastError = null;
       _lastSuccessAt = DateTime.now();
       _connectionState = PulseConnectionState.connected;
       notifyListeners();
     } catch (e) {
       _lastError = e;
+      print('PulseViewModel ERROR: $e');
       // If we have never succeeded, we are still "connecting".
       if (_lastSuccessAt == null) {
         _connectionState = PulseConnectionState.connecting;

@@ -9,13 +9,14 @@ class Esp32CamService {
 
   Esp32CamService({http.Client? client}) : _client = client ?? http.Client();
 
-  Uri _captureUri({String captureUrl = ApiConfig.esp32CamCaptureUrl}) {
+  Uri _captureUri({required String captureUrl}) {
     return Uri.parse(captureUrl);
   }
 
-  Future<Uint8List> captureJpeg({String captureUrl = ApiConfig.esp32CamCaptureUrl}) async {
+  Future<Uint8List> captureJpeg({String? captureUrl}) async {
+    final url = captureUrl ?? ApiConfig.esp32CamCaptureUrl;
     final res = await _client.get(
-      _captureUri(captureUrl: captureUrl),
+      _captureUri(captureUrl: url),
       headers: {
         'Accept': 'image/jpeg',
       },

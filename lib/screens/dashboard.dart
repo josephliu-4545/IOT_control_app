@@ -49,6 +49,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Uint8List? _latestPreviewJpeg;
   bool _isFetchingPreviewFrame = false;
   int _previewTick = 0;
+  String? _esp32CamErrorMessage;
 
   @override
   void initState() {
@@ -179,9 +180,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
       }
       setState(() {
         _latestPreviewJpeg = bytes;
+        _esp32CamErrorMessage = null;
       });
     } catch (e) {
       print('ESP32-CAM CAPTURE PREVIEW ERROR: $e');
+      if (!mounted) return;
+      setState(() {
+        _esp32CamErrorMessage = 'Failed to connect to ESP32-CAM. Please check your connection.';
+      });
     } finally {
       _isFetchingPreviewFrame = false;
     }
@@ -208,24 +214,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
         title: Text(l10n.dashboardTitle),
         actions: [
           IconButton(
-            tooltip: l10n.pulseTooltip,
-            icon: const Icon(Icons.show_chart),
-            onPressed: () {
-              Navigator.of(context).pushNamed(PulseLiveScreen.routeName);
-            },
-          ),
-          IconButton(
-            tooltip: l10n.liveDashboardTooltip,
-            icon: const Icon(Icons.insights),
-            onPressed: () {
-              Navigator.of(context).pushNamed(LiveDashboardScreen.routeName);
-            },
-          ),
-          IconButton(
             tooltip: l10n.healthDetailsTooltip,
             icon: const Icon(Icons.monitor_heart),
             onPressed: () {
               Navigator.of(context).pushNamed(HealthScreen.routeName);
+            },
+          ),
+          IconButton(
+            tooltip: 'Heart Rate Analysis',
+            icon: const Icon(Icons.analytics_outlined),
+            onPressed: () {
+              Navigator.of(context).pushNamed('/heart-rate-analysis');
             },
           ),
           IconButton(
@@ -478,34 +477,74 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: AspectRatio(
               aspectRatio: 4 / 3,
               child: _useCapturePreview
-                  ? (_latestPreviewJpeg == null
+                  ? (_esp32CamErrorMessage != null
                       ? Container(
                           color: AppColors.cardBackground,
                           alignment: Alignment.center,
-                          child: const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                        )
-                      : Image.memory(
-                          _latestPreviewJpeg!,
-                          fit: BoxFit.cover,
-                          gaplessPlayback: true,
-                          errorBuilder: (context, error, stackTrace) {
-                            print('ESP32-CAM PREVIEW Image.memory error: $error');
-                            return Container(
-                              color: AppColors.cardBackground,
-                              alignment: Alignment.center,
-                              child: Text(
-                                l10n.cameraPreviewUnavailable,
+                          padding: const EdgeInsets.all(AppSpacing.md),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.videocam_off,
+                                color: AppColors.textSecondary,
+                                size: 32,
+                              ),
+                              const SizedBox(height: AppSpacing.sm),
+                              Text(
+                                'Camera Offline',
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: AppColors.textSecondary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: AppSpacing.xs),
+                              Text(
+                                _esp32CamErrorMessage!,
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   color: AppColors.textSecondary,
                                 ),
+                                textAlign: TextAlign.center,
                               ),
-                            );
-                          },
-                        ))
+                              const SizedBox(height: AppSpacing.sm),
+                              Text(
+                                'Check Settings → ESP32-CAM URL',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: AppColors.accentBlue,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : (_latestPreviewJpeg == null
+                          ? Container(
+                              color: AppColors.cardBackground,
+                              alignment: Alignment.center,
+                              child: const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                            )
+                          : Image.memory(
+                              _latestPreviewJpeg!,
+                              fit: BoxFit.cover,
+                              gaplessPlayback: true,
+                              errorBuilder: (context, error, stackTrace) {
+                                print('ESP32-CAM PREVIEW Image.memory error: $error');
+                                return Container(
+                                  color: AppColors.cardBackground,
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    l10n.cameraPreviewUnavailable,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                );
+                              },
+                            )))
                   : Image.network(
                       ApiConfig.esp32CamStreamUrl,
                       fit: BoxFit.cover,

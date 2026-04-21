@@ -14,6 +14,7 @@ import 'models/environment_analysis.dart';
 import 'models/snapshots.dart';
 import 'screens/dashboard.dart';  
 import 'screens/health.dart';
+import 'screens/heart_rate_analysis.dart';
 import 'screens/live_dashboard.dart';
 import 'screens/pulse_live.dart';
 import 'screens/settings.dart';
@@ -90,7 +91,7 @@ class SmartHealthApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => PulseViewModel(
             service: EspPulseService(
-              endpoint: Uri.parse('http://192.168.20.71/'),
+              endpoint: Uri.parse('http://172.20.10.8/'),
             ),
           ),
         ),
@@ -148,6 +149,7 @@ class SmartHealthApp extends StatelessWidget {
         routes: {
           DashboardScreen.routeName: (_) => const DashboardScreen(),
           HealthScreen.routeName: (_) => const HealthScreen(),
+          HeartRateAnalysisScreen.routeName: (_) => const HeartRateAnalysisScreen(),
           LiveDashboardScreen.routeName: (_) => const LiveDashboardScreen(),
           PulseLiveScreen.routeName: (_) => const PulseLiveScreen(),
           SettingsScreen.routeName: (_) => const SettingsScreen(),

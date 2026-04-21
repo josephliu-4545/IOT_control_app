@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 
 import '../gen/app_localizations.dart';
 import '../main.dart';
+import '../services/pulse_view_model.dart';
 import '../utils/constants.dart';
 
 class HealthScreen extends StatefulWidget {
@@ -45,10 +46,10 @@ class _HealthScreenState extends State<HealthScreen>
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final viewModel = context.watch<DashboardViewModel>();
-    final snapshot = viewModel.currentSnapshot;
-    final bpm = snapshot?.heartRateBpm ?? 0;
-    final history = viewModel.heartRateHistory;
+    final viewModel = context.watch<PulseViewModel>();
+    final bpm = viewModel.currentValue ?? 0;
+    final history = viewModel.history;
+
 
     return Scaffold(
       appBar: AppBar(
