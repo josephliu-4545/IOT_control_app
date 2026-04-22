@@ -16,8 +16,6 @@ import 'settings.dart';
 import '../utils/constants.dart';
 import '../widgets/sensor_card.dart';
 import 'health.dart';
-import 'live_dashboard.dart';
-import 'pulse_live.dart';
 
 class DashboardScreen extends StatefulWidget {
   static const String routeName = '/';
@@ -54,10 +52,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
-    print('ESP32-CAM PREVIEW URL (stream): ${ApiConfig.esp32CamStreamUrl}');
-    print('ESP32-CAM PREVIEW URL (capture): ${ApiConfig.esp32CamCaptureUrl}');
+    debugPrint('ESP32-CAM PREVIEW URL (stream): ${ApiConfig.esp32CamStreamUrl}');
+    debugPrint('ESP32-CAM PREVIEW URL (capture): ${ApiConfig.esp32CamCaptureUrl}');
     _useCapturePreview = true;
-    print('ESP32-CAM PREVIEW MODE: capture (forced)');
+    debugPrint('ESP32-CAM PREVIEW MODE: capture (forced)');
     _startCapturePreview();
 
     _initTts();
@@ -71,7 +69,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _ttsReady = true;
       });
     } catch (e) {
-      print('TTS INIT ERROR: $e');
+      debugPrint('TTS INIT ERROR: $e');
     }
   }
 
@@ -150,13 +148,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   void _startCapturePreview() {
     if (_capturePreviewTimer != null) return;
-    print('ESP32-CAM CAPTURE PREVIEW: starting timer (700ms)');
+    debugPrint('ESP32-CAM CAPTURE PREVIEW: starting timer (700ms)');
     _capturePreviewTimer = Timer.periodic(
       const Duration(milliseconds: 700),
       (_) {
         _previewTick += 1;
         if (_previewTick % 10 == 0) {
-          print('ESP32-CAM CAPTURE PREVIEW: tick=$_previewTick');
+          debugPrint('ESP32-CAM CAPTURE PREVIEW: tick=$_previewTick');
         }
         _fetchPreviewFrame();
       },
@@ -174,16 +172,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
       );
       if (!mounted) return;
       if (bytes.isEmpty) {
-        print('ESP32-CAM CAPTURE PREVIEW: received EMPTY bytes');
+        debugPrint('ESP32-CAM CAPTURE PREVIEW: received EMPTY bytes');
       } else {
-        print('ESP32-CAM CAPTURE PREVIEW: received ${bytes.length} bytes');
+        debugPrint('ESP32-CAM CAPTURE PREVIEW: received ${bytes.length} bytes');
       }
       setState(() {
         _latestPreviewJpeg = bytes;
         _esp32CamErrorMessage = null;
       });
     } catch (e) {
-      print('ESP32-CAM CAPTURE PREVIEW ERROR: $e');
+      debugPrint('ESP32-CAM CAPTURE PREVIEW ERROR: $e');
       if (!mounted) return;
       setState(() {
         _esp32CamErrorMessage = 'Failed to connect to ESP32-CAM. Please check your connection.';
@@ -201,7 +199,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final snapshot = viewModel.currentSnapshot;
     final isLoading = viewModel.isLoading;
     final EnvironmentAnalysis? latestEnv = viewModel.latestEnvironmentAnalysis;
-    print("ENV MODEL: $latestEnv");
+    debugPrint("ENV MODEL: $latestEnv");
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -225,6 +223,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
             icon: const Icon(Icons.analytics_outlined),
             onPressed: () {
               Navigator.of(context).pushNamed('/heart-rate-analysis');
+            },
+          ),
+          IconButton(
+            tooltip: 'Danger Detection',
+            icon: const Icon(Icons.shield_outlined),
+            onPressed: () {
+              Navigator.of(context).pushNamed('/danger-detection');
             },
           ),
           IconButton(
@@ -532,7 +537,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               fit: BoxFit.cover,
                               gaplessPlayback: true,
                               errorBuilder: (context, error, stackTrace) {
-                                print('ESP32-CAM PREVIEW Image.memory error: $error');
+                                debugPrint('ESP32-CAM PREVIEW Image.memory error: $error');
                                 return Container(
                                   color: AppColors.cardBackground,
                                   alignment: Alignment.center,
@@ -549,7 +554,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ApiConfig.esp32CamStreamUrl,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
-                        print(
+                        debugPrint(
                           'ESP32-CAM STREAM PREVIEW ERROR for ${ApiConfig.esp32CamStreamUrl}: $error',
                         );
 

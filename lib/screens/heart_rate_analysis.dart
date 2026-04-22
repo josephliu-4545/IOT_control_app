@@ -28,14 +28,51 @@ class _HeartRateAnalysisScreenState extends State<HeartRateAnalysisScreen> {
   }
 
   Future<void> _loadAnalysis() async {
-    final analysis = await _analyticsService.generateWeeklyAnalysis();
-    final insights = _analyticsService.generateInsights(analysis);
+    try {
+      var analysis = await _analyticsService.generateWeeklyAnalysis();
+      
+      // Generate demo data if empty (for presentation)
+      if (analysis.averageBpm == 0) {
+        debugPrint('Generating demo data for presentation...');
+        await _analyticsService.generateDemoData();
+        analysis = await _analyticsService.generateWeeklyAnalysis();
+      }
+      
+      final insights = _analyticsService.generateInsights(analysis);
 
+      setState(() {
+        _analysis = analysis;
+        _insights = insights;
+        _isLoading = false;
+      });
+    } catch (e) {
+      debugPrint('Error loading analysis: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _generateDemoData() async {
     setState(() {
-      _analysis = analysis;
-      _insights = insights;
-      _isLoading = false;
+      _isLoading = true;
     });
+    
+    try {
+      await _analyticsService.generateDemoData();
+      await _loadAnalysis();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Demo data generated! Week of heart rate history created.')),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error generating demo data: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _showNotifications() async {
@@ -68,6 +105,11 @@ class _HeartRateAnalysisScreenState extends State<HeartRateAnalysisScreen> {
               tooltip: 'Send notifications',
             ),
           IconButton(
+            icon: const Icon(Icons.data_array, color: AppColors.textPrimary),
+            onPressed: _generateDemoData,
+            tooltip: 'Generate Demo Data',
+          ),
+          IconButton(
             icon: const Icon(Icons.refresh, color: AppColors.textPrimary),
             onPressed: _loadAnalysis,
             tooltip: 'Refresh',
@@ -76,8 +118,46 @@ class _HeartRateAnalysisScreenState extends State<HeartRateAnalysisScreen> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _loadAnalysis,
+          : _analysis == null || _analysis!.averageBpm == 0
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.favorite_border,
+                        size: 64,
+                        color: AppColors.textSecondary.withOpacity(0.5),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No heart rate data yet',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Connect to ESP8266 or tap the database icon\nto generate demo data for presentation',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.textSecondary.withOpacity(0.7),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      ElevatedButton.icon(
+                        onPressed: _generateDemoData,
+                        icon: const Icon(Icons.data_array),
+                        label: const Text('Generate Demo Data'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.accentBlue,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : RefreshIndicator(
+                  onRefresh: _loadAnalysis,
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(AppSpacing.lg),

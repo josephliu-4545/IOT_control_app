@@ -81,7 +81,7 @@ class PulseViewModel extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       _lastError = e;
-      print('PulseViewModel ERROR: $e');
+      debugPrint('PulseViewModel ERROR: $e');
       // If we have never succeeded, we are still "connecting".
       if (_lastSuccessAt == null) {
         _connectionState = PulseConnectionState.connecting;

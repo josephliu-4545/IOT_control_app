@@ -1,11 +1,9 @@
 // lib/screens/health.dart
 import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../gen/app_localizations.dart';
-import '../main.dart';
 import '../services/pulse_view_model.dart';
 import '../utils/constants.dart';
 

@@ -12,12 +12,14 @@ import 'firebase_options.dart';
 import 'gen/app_localizations.dart';
 import 'models/environment_analysis.dart';
 import 'models/snapshots.dart';
+import 'screens/danger_detection.dart';
 import 'screens/dashboard.dart';  
 import 'screens/health.dart';
 import 'screens/heart_rate_analysis.dart';
 import 'screens/live_dashboard.dart';
 import 'screens/pulse_live.dart';
 import 'screens/settings.dart';
+import 'services/danger_detection_service.dart';
 import 'services/esp_pulse_service.dart';
 import 'services/firebase_iot_service.dart';
 import 'services/iot_service.dart';
@@ -53,11 +55,11 @@ void main() async {
     iotService = FirebaseIoTService();
   } catch (e, st) {
     final host = _tryExtractHostname(e);
-    print('FIREBASE INIT FAILED: $e');
+    debugPrint('FIREBASE INIT FAILED: $e');
     if (host != null) {
-      print('FIREBASE/NETWORK HOSTNAME (best-effort): $host');
+      debugPrint('FIREBASE/NETWORK HOSTNAME (best-effort): $host');
     }
-    print(st);
+    debugPrint(st.toString());
   }
 
   runApp(SmartHealthApp(iotService: iotService));
@@ -94,6 +96,9 @@ class SmartHealthApp extends StatelessWidget {
               endpoint: Uri.parse('http://172.20.10.8/'),
             ),
           ),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => DangerDetectionService(),
         ),
       ],
       child: Builder(
@@ -148,6 +153,7 @@ class SmartHealthApp extends StatelessWidget {
         initialRoute: DashboardScreen.routeName,
         routes: {
           DashboardScreen.routeName: (_) => const DashboardScreen(),
+          DangerDetectionScreen.routeName: (_) => const DangerDetectionScreen(),
           HealthScreen.routeName: (_) => const HealthScreen(),
           HeartRateAnalysisScreen.routeName: (_) => const HeartRateAnalysisScreen(),
           LiveDashboardScreen.routeName: (_) => const LiveDashboardScreen(),
@@ -189,17 +195,17 @@ class DashboardViewModel extends ChangeNotifier {
   DashboardViewModel({
     required this.iotService,
   }) {
-    print("DASHBOARD VIEWMODEL CREATED");
-    print("SUBSCRIBING ENV STREAM NOW");
+    debugPrint("DASHBOARD VIEWMODEL CREATED");
+    debugPrint("SUBSCRIBING ENV STREAM NOW");
     _envSub?.cancel();
     _envSub = iotService.streamLatestEnvironmentAnalysis().listen(
       (analysis) {
-        print("ENV VM RECEIVED: $analysis");
+        debugPrint("ENV VM RECEIVED: $analysis");
         _latestEnvironmentAnalysis = analysis;
         notifyListeners();
       },
       onError: (e) {
-        print("ENV VM ERROR: $e");
+        debugPrint("ENV VM ERROR: $e");
         notifyListeners();
       },
     );

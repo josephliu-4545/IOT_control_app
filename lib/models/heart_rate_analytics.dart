@@ -1,9 +1,11 @@
 class HeartRateReading {
+  final int? id;  // Add this line
   final int bpm;
   final DateTime timestamp;
-  final bool isResting;  // Calculated based on activity context
+  final bool isResting;
 
   HeartRateReading({
+    this.id,  // Add this line
     required this.bpm,
     required this.timestamp,
     this.isResting = false,
@@ -25,6 +27,8 @@ class HeartRateReading {
     );
   }
 }
+
+
 
 class HeartRateAnalysis {
   final double averageBpm;
