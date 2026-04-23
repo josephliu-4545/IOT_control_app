@@ -29,6 +29,22 @@ The system supports an end-to-end pipeline:
   - Historical trend chart
   - Supports JSON, plain text, and labeled response formats
 
+- **Heart Rate Analysis Screen (Flutter)**
+  - Weekly trend tracking (average, resting, min/max BPM)
+  - Anomaly detection (elevated, low, irregular heart rate)
+  - Hourly trend chart visualization
+  - Health insights with notifications
+  - Local SQLite storage (mobile) / in-memory storage (web)
+  - Demo data generator for presentations
+
+- **Danger Detection Screen (Flutter)**
+  - Real-time ESP32-CAM monitoring
+  - Object detection (fire, smoke, weapons, spills, obstacles)
+  - Danger level classification (None, Low, Medium, High)
+  - Vibration alerts for medium/high danger
+  - Detection history with timestamps
+  - Manual clear history
+
 - **Live Health Dashboard screen (Flutter)**
   - Pull-to-refresh view backed by the Render backend `/device/dashboard`
   - Shows latest reading + history + summary
@@ -42,6 +58,9 @@ The system supports an end-to-end pipeline:
   - `DashboardViewModel` (Provider + ChangeNotifier) subscribes to Firestore streams
   - `PulseViewModel` manages ESP8266 heart rate sensor polling (500ms interval)
   - `EspPulseService` handles HTTP requests to local ESP8266 endpoint
+  - `HeartRateAnalyticsService` stores and analyzes heart rate data with SQLite
+  - `HealthNotificationService` triggers local notifications for anomalies
+  - `DangerDetectionService` monitors ESP32-CAM and triggers vibration alerts
   - `FirebaseIoTService` provides typed streams for:
     - sensor snapshots
     - glasses state
@@ -66,16 +85,22 @@ lib/
  ├── screens/
  │    ├── dashboard.dart      # Main dashboard + environment analysis card
  │    ├── health.dart         # Animated heart + HR trend chart (ESP8266 data)
+ │    ├── heart_rate_analysis.dart  # Weekly HR trends, anomalies, insights
+ │    ├── danger_detection.dart     # Camera-based danger monitoring
  │    ├── live_dashboard.dart # REST-backed dashboard screen
  ├── services/
  │    ├── firebase_iot_service.dart
  │    ├── device_command_service.dart
  │    ├── dashboard_api_service.dart
- │    ├── esp_pulse_service.dart    # ESP8266 heart rate HTTP client
- │    ├── pulse_view_model.dart      # Heart rate polling & state management
+ │    ├── esp_pulse_service.dart         # ESP8266 heart rate HTTP client
+ │    ├── pulse_view_model.dart          # Heart rate polling & state management
+ │    ├── heart_rate_analytics_service.dart  # SQLite storage & analysis
+ │    ├── health_notification_service.dart   # Local notifications
+ │    ├── danger_detection_service.dart      # Camera monitoring & alerts
  ├── models/
  │    ├── environment_analysis.dart
  │    ├── snapshots.dart
+ │    ├── heart_rate_analytics.dart    # HR data models
  ├── widgets/
  │    ├── sensor_card.dart    # Reusable neon metric card widget
  ├── utils/
@@ -229,6 +254,28 @@ To run unit/widget tests:
 flutter test
 ```
 
+### Android Build Configuration
+
+For `flutter_local_notifications` and `vibration` plugins, ensure these are set in `android/app/build.gradle.kts`:
+
+```kotlin
+compileOptions {
+    isCoreLibraryDesugaringEnabled = true
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+}
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+}
+```
+
+Also add to `AndroidManifest.xml`:
+```xml
+<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+<uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+```
+
 ---
 
 ## Running the Backend (server/)
@@ -267,6 +314,9 @@ All device endpoints require headers:
 - **Flutter** (Dart)
 - **Firebase**: `firebase_core`, `cloud_firestore`, `firebase_auth`
 - **State management:** Provider + ChangeNotifier
+- **Local Storage:** `sqflite` (SQLite for mobile), in-memory fallback for web
+- **Notifications:** `flutter_local_notifications` (v17.2.3+)
+- **Vibration:** `vibration` (v2.0.1+) for danger alerts
 - **Backend:** Node.js + Express + Firestore (firebase-admin)
 - **Hardware:** ESP8266 WiFi module with heart rate sensor
 - **AI inference:** HuggingFace router API (currently `google/vit-base-patch16-224`)
