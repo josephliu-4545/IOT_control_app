@@ -10,7 +10,8 @@ class HeartRateAnalysisScreen extends StatefulWidget {
   const HeartRateAnalysisScreen({super.key});
 
   @override
-  State<HeartRateAnalysisScreen> createState() => _HeartRateAnalysisScreenState();
+  State<HeartRateAnalysisScreen> createState() =>
+      _HeartRateAnalysisScreenState();
 }
 
 class _HeartRateAnalysisScreenState extends State<HeartRateAnalysisScreen> {
@@ -30,14 +31,14 @@ class _HeartRateAnalysisScreenState extends State<HeartRateAnalysisScreen> {
   Future<void> _loadAnalysis() async {
     try {
       var analysis = await _analyticsService.generateWeeklyAnalysis();
-      
+
       // Generate demo data if empty (for presentation)
       if (analysis.averageBpm == 0) {
         debugPrint('Generating demo data for presentation...');
         await _analyticsService.generateDemoData();
         analysis = await _analyticsService.generateWeeklyAnalysis();
       }
-      
+
       final insights = _analyticsService.generateInsights(analysis);
 
       setState(() {
@@ -57,14 +58,18 @@ class _HeartRateAnalysisScreenState extends State<HeartRateAnalysisScreen> {
     setState(() {
       _isLoading = true;
     });
-    
+
     try {
       await _analyticsService.generateDemoData();
       await _loadAnalysis();
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Demo data generated! Week of heart rate history created.')),
+          const SnackBar(
+            content: Text(
+              'Demo data generated! Week of heart rate history created.',
+            ),
+          ),
         );
       }
     } catch (e) {
@@ -77,7 +82,7 @@ class _HeartRateAnalysisScreenState extends State<HeartRateAnalysisScreen> {
 
   Future<void> _showNotifications() async {
     if (_insights == null) return;
-    
+
     for (final insight in _insights!) {
       await _notificationService.showHealthInsight(insight);
     }
@@ -96,11 +101,17 @@ class _HeartRateAnalysisScreenState extends State<HeartRateAnalysisScreen> {
       appBar: AppBar(
         backgroundColor: AppColors.background,
         elevation: 0,
-        title: Text('Heart Rate Analysis', style: TextStyle(color: AppColors.textPrimary)),
+        title: Text(
+          'Heart Rate Analysis',
+          style: TextStyle(color: AppColors.textPrimary),
+        ),
         actions: [
           if (_insights != null && _insights!.isNotEmpty)
             IconButton(
-              icon: const Icon(Icons.notifications_active, color: AppColors.accentRed),
+              icon: const Icon(
+                Icons.notifications_active,
+                color: AppColors.accentRed,
+              ),
               onPressed: _showNotifications,
               tooltip: 'Send notifications',
             ),
@@ -119,45 +130,45 @@ class _HeartRateAnalysisScreenState extends State<HeartRateAnalysisScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _analysis == null || _analysis!.averageBpm == 0
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.favorite_border,
-                        size: 64,
-                        color: AppColors.textSecondary.withOpacity(0.5),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'No heart rate data yet',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Connect to ESP8266 or tap the database icon\nto generate demo data for presentation',
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.textSecondary.withOpacity(0.7),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      ElevatedButton.icon(
-                        onPressed: _generateDemoData,
-                        icon: const Icon(Icons.data_array),
-                        label: const Text('Generate Demo Data'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.accentBlue,
-                          foregroundColor: Colors.white,
-                        ),
-                      ),
-                    ],
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.favorite_border,
+                    size: 64,
+                    color: AppColors.textSecondary.withOpacity(0.5),
                   ),
-                )
-              : RefreshIndicator(
-                  onRefresh: _loadAnalysis,
+                  const SizedBox(height: 16),
+                  Text(
+                    'No heart rate data yet',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Connect to ESP8266 or tap the database icon\nto generate demo data for presentation',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.textSecondary.withOpacity(0.7),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton.icon(
+                    onPressed: _generateDemoData,
+                    icon: const Icon(Icons.data_array),
+                    label: const Text('Generate Demo Data'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.accentBlue,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          : RefreshIndicator(
+              onRefresh: _loadAnalysis,
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(AppSpacing.lg),
@@ -187,7 +198,10 @@ class _HeartRateAnalysisScreenState extends State<HeartRateAnalysisScreen> {
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppColors.accentRed.withOpacity(0.3), AppColors.accentRed.withOpacity(0.1)],
+          colors: [
+            AppColors.accentRed.withOpacity(0.3),
+            AppColors.accentRed.withOpacity(0.1),
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -215,7 +229,10 @@ class _HeartRateAnalysisScreenState extends State<HeartRateAnalysisScreen> {
                     ),
                     Text(
                       '${_formatDate(_analysis!.periodStart)} - ${_formatDate(_analysis!.periodEnd)}',
-                      style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 12,
+                      ),
                     ),
                   ],
                 ),
@@ -235,9 +252,21 @@ class _HeartRateAnalysisScreenState extends State<HeartRateAnalysisScreen> {
 
   Widget _buildTrendBadge(HealthTrend trend) {
     final (color, icon, text) = switch (trend) {
-      HealthTrend.improving => (AppColors.accentGreen, Icons.trending_down, 'Improving'),
-      HealthTrend.concerning => (AppColors.accentRed, Icons.warning, 'Attention'),
-      HealthTrend.stable => (AppColors.accentBlue, Icons.check_circle, 'Stable'),
+      HealthTrend.improving => (
+        AppColors.accentGreen,
+        Icons.trending_down,
+        'Improving',
+      ),
+      HealthTrend.concerning => (
+        AppColors.accentRed,
+        Icons.warning,
+        'Attention',
+      ),
+      HealthTrend.stable => (
+        AppColors.accentBlue,
+        Icons.check_circle,
+        'Stable',
+      ),
     };
 
     return Container(
@@ -252,7 +281,14 @@ class _HeartRateAnalysisScreenState extends State<HeartRateAnalysisScreen> {
         children: [
           Icon(icon, color: color, size: 16),
           const SizedBox(width: 4),
-          Text(text, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600)),
+          Text(
+            text,
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );
@@ -268,10 +304,30 @@ class _HeartRateAnalysisScreenState extends State<HeartRateAnalysisScreen> {
       crossAxisSpacing: AppSpacing.md,
       mainAxisSpacing: AppSpacing.md,
       children: [
-        _buildStatCard('Resting HR', '${_analysis!.restingBpm.toStringAsFixed(0)}', 'BPM', AppColors.accentBlue),
-        _buildStatCard('Average', '${_analysis!.averageBpm.toStringAsFixed(0)}', 'BPM', AppColors.accentGreen),
-        _buildStatCard('Min / Max', '${_analysis!.minBpm.toStringAsFixed(0)} / ${_analysis!.maxBpm.toStringAsFixed(0)}', 'BPM', const Color(0xFFF59E0B)),
-        _buildStatCard('Anomalies', '${_analysis!.anomalies.length}', 'detected', AppColors.accentRed),
+        _buildStatCard(
+          'Resting HR',
+          '${_analysis!.restingBpm.toStringAsFixed(0)}',
+          'BPM',
+          AppColors.accentBlue,
+        ),
+        _buildStatCard(
+          'Average',
+          '${_analysis!.averageBpm.toStringAsFixed(0)}',
+          'BPM',
+          AppColors.accentGreen,
+        ),
+        _buildStatCard(
+          'Min / Max',
+          '${_analysis!.minBpm.toStringAsFixed(0)} / ${_analysis!.maxBpm.toStringAsFixed(0)}',
+          'BPM',
+          const Color(0xFFF59E0B),
+        ),
+        _buildStatCard(
+          'Anomalies',
+          '${_analysis!.anomalies.length}',
+          'detected',
+          AppColors.accentRed,
+        ),
       ],
     );
   }
@@ -287,17 +343,36 @@ class _HeartRateAnalysisScreenState extends State<HeartRateAnalysisScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(label, style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+          Text(
+            label,
+            style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+          ),
           const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(value, style: TextStyle(color: color, fontSize: 28, fontWeight: FontWeight.bold)),
-              const SizedBox(width: 4),
-              Text(unit, style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-            ],
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Text(
+                  value,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  unit,
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -316,7 +391,14 @@ class _HeartRateAnalysisScreenState extends State<HeartRateAnalysisScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('24-Hour Pattern', style: TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
+          Text(
+            '24-Hour Pattern',
+            style: TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(height: AppSpacing.md),
           SizedBox(
             height: 150,
@@ -329,9 +411,18 @@ class _HeartRateAnalysisScreenState extends State<HeartRateAnalysisScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('00:00', style: TextStyle(color: AppColors.textSecondary, fontSize: 10)),
-              Text('12:00', style: TextStyle(color: AppColors.textSecondary, fontSize: 10)),
-              Text('23:59', style: TextStyle(color: AppColors.textSecondary, fontSize: 10)),
+              Text(
+                '00:00',
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 10),
+              ),
+              Text(
+                '12:00',
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 10),
+              ),
+              Text(
+                '23:59',
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 10),
+              ),
             ],
           ),
         ],
@@ -373,7 +464,11 @@ class _HeartRateAnalysisScreenState extends State<HeartRateAnalysisScreen> {
         children: [
           Text(
             'Detected Anomalies (${_analysis!.anomalies.length})',
-            style: TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: AppSpacing.md),
           ..._analysis!.anomalies.take(5).map((a) => _buildAnomalyItem(a)),
@@ -429,7 +524,10 @@ class _HeartRateAnalysisScreenState extends State<HeartRateAnalysisScreen> {
                 ),
                 Text(
                   _formatDateTime(anomaly.timestamp),
-                  style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 11,
+                  ),
                 ),
               ],
             ),
@@ -453,7 +551,11 @@ class _HeartRateAnalysisScreenState extends State<HeartRateAnalysisScreen> {
         children: [
           Text(
             'Health Insights',
-            style: TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: AppSpacing.md),
           ..._insights!.map((i) => _buildInsightItem(i)),
@@ -494,12 +596,19 @@ class _HeartRateAnalysisScreenState extends State<HeartRateAnalysisScreen> {
               children: [
                 Text(
                   insight.title,
-                  style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   insight.description,
-                  style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
+                  ),
                 ),
               ],
             ),
@@ -519,8 +628,10 @@ class _HeartRateAnalysisScreenState extends State<HeartRateAnalysisScreen> {
 
   String _getTrendDescription(HealthTrend trend) {
     return switch (trend) {
-      HealthTrend.improving => 'Your heart rate patterns show signs of improved fitness.',
-      HealthTrend.concerning => 'Unusual patterns detected. Consider monitoring your health.',
+      HealthTrend.improving =>
+        'Your heart rate patterns show signs of improved fitness.',
+      HealthTrend.concerning =>
+        'Unusual patterns detected. Consider monitoring your health.',
       HealthTrend.stable => 'Your heart rate has been consistent this week.',
     };
   }
@@ -542,7 +653,10 @@ class _HourlyTrendPainter extends CustomPainter {
 
     final fillPaint = Paint()
       ..shader = LinearGradient(
-        colors: [AppColors.accentRed.withOpacity(0.3), AppColors.accentRed.withOpacity(0)],
+        colors: [
+          AppColors.accentRed.withOpacity(0.3),
+          AppColors.accentRed.withOpacity(0),
+        ],
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
       ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
@@ -554,7 +668,10 @@ class _HourlyTrendPainter extends CustomPainter {
     final points = <Offset>[];
     for (int i = 0; i < hourlyData.length; i++) {
       final x = (i / (hourlyData.length - 1)) * size.width;
-      final y = size.height - ((hourlyData[i] - min) / range) * size.height * 0.8 - size.height * 0.1;
+      final y =
+          size.height -
+          ((hourlyData[i] - min) / range) * size.height * 0.8 -
+          size.height * 0.1;
       points.add(Offset(x, y));
     }
 
