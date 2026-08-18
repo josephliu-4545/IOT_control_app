@@ -46,3 +46,5 @@ app.*.map.json
 
 # Standalone Node backend secrets
 /server/.env
+lib/server/.env
+**/.env
