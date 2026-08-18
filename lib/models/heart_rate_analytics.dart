@@ -1,11 +1,11 @@
 class HeartRateReading {
-  final int? id;  // Add this line
+  final int? id;  // Add this
   final int bpm;
   final DateTime timestamp;
   final bool isResting;
 
   HeartRateReading({
-    this.id,  // Add this line
+    this.id,  // Add this
     required this.bpm,
     required this.timestamp,
     this.isResting = false,
@@ -13,6 +13,7 @@ class HeartRateReading {
 
   Map<String, dynamic> toMap() {
     return {
+      'id': id,  // Add this
       'bpm': bpm,
       'timestamp': timestamp.millisecondsSinceEpoch,
       'isResting': isResting ? 1 : 0,
@@ -21,13 +22,13 @@ class HeartRateReading {
 
   factory HeartRateReading.fromMap(Map<String, dynamic> map) {
     return HeartRateReading(
+      id: map['id'],  // Add this
       bpm: map['bpm'],
       timestamp: DateTime.fromMillisecondsSinceEpoch(map['timestamp']),
       isResting: map['isResting'] == 1,
     );
   }
 }
-
 
 
 class HeartRateAnalysis {

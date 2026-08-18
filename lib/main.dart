@@ -13,12 +13,14 @@ import 'gen/app_localizations.dart';
 import 'models/environment_analysis.dart';
 import 'models/snapshots.dart';
 import 'screens/danger_detection.dart';
-import 'screens/dashboard.dart';  
+import 'screens/dashboard.dart';
 import 'screens/health.dart';
 import 'screens/heart_rate_analysis.dart';
 import 'screens/live_dashboard.dart';
 import 'screens/pulse_live.dart';
 import 'screens/settings.dart';
+import 'screens/device_diagnostics.dart';
+import 'config/api_config.dart';
 import 'services/danger_detection_service.dart';
 import 'services/esp_pulse_service.dart';
 import 'services/firebase_iot_service.dart';
@@ -30,7 +32,10 @@ import 'utils/constants.dart';
 
 String? _tryExtractHostname(Object error) {
   final s = error.toString();
-  final urlMatch = RegExp(r'https?://([^/\s:]+)', caseSensitive: false).firstMatch(s);
+  final urlMatch = RegExp(
+    r'https?://([^/\s:]+)',
+    caseSensitive: false,
+  ).firstMatch(s);
   if (urlMatch != null) return urlMatch.group(1);
 
   final hostMatch = RegExp(
@@ -44,6 +49,7 @@ String? _tryExtractHostname(Object error) {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await ApiConfig.initialize();
 
   IoTService iotService = OfflineIoTService();
 
@@ -86,81 +92,78 @@ class SmartHealthApp extends StatelessWidget {
           },
         ),
         ChangeNotifierProvider(
-          create: (_) => DashboardViewModel(
-            iotService: iotService,
-          ),
+          create: (_) => DashboardViewModel(iotService: iotService),
         ),
         ChangeNotifierProvider(
           create: (_) => PulseViewModel(
             service: EspPulseService(
-              endpoint: Uri.parse('http://172.20.10.8/'),
+              endpoint: Uri.parse(ApiConfig.heartRateBaseUrl),
             ),
           ),
         ),
-        ChangeNotifierProvider(
-          create: (_) => DangerDetectionService(),
-        ),
+        ChangeNotifierProvider(create: (_) => DangerDetectionService()),
       ],
       child: Builder(
         builder: (context) {
           final localeProvider = context.watch<LocaleProvider>();
           return MaterialApp(
-        debugShowCheckedModeBanner: false,
-        title: 'Smart Health Dashboard',
-        locale: localeProvider.locale,
-        supportedLocales: const [
-          Locale('en', 'US'),
-          Locale('my', 'MM'),
-          Locale('es', 'ES'),
-          Locale('fr', 'FR'),
-          Locale('de', 'DE'),
-          Locale('zh', 'CN'),
-          Locale('ja', 'JP'),
-          Locale('ru', 'RU'),
-          Locale('ar', 'SA'),
-          Locale('hi', 'IN'),
-        ],
-        localizationsDelegates: const [
-          AppLocalizations.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        theme: ThemeData(
-          brightness: Brightness.dark,
-          scaffoldBackgroundColor: AppColors.background,
-          textTheme: baseTextTheme,
-          colorScheme: const ColorScheme.dark(
-            primary: AppColors.accentBlue,
-            secondary: AppColors.accentGreen,
-            surface: AppColors.background,
-          ),
-          appBarTheme: const AppBarTheme(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-          ),
-          cardTheme: CardThemeData(
-            color: AppColors.cardBackground,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-              side: const BorderSide(
-                color: AppColors.border,
-                width: 1,
+            debugShowCheckedModeBanner: false,
+            title: 'Smart Health Dashboard',
+            locale: localeProvider.locale,
+            supportedLocales: const [
+              Locale('en', 'US'),
+              Locale('my', 'MM'),
+              Locale('es', 'ES'),
+              Locale('fr', 'FR'),
+              Locale('de', 'DE'),
+              Locale('zh', 'CN'),
+              Locale('ja', 'JP'),
+              Locale('ru', 'RU'),
+              Locale('ar', 'SA'),
+              Locale('hi', 'IN'),
+            ],
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            theme: ThemeData(
+              brightness: Brightness.dark,
+              scaffoldBackgroundColor: AppColors.background,
+              textTheme: baseTextTheme,
+              colorScheme: const ColorScheme.dark(
+                primary: AppColors.accentBlue,
+                secondary: AppColors.accentGreen,
+                surface: AppColors.background,
+              ),
+              appBarTheme: const AppBarTheme(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+              ),
+              cardTheme: CardThemeData(
+                color: AppColors.cardBackground,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: const BorderSide(color: AppColors.border, width: 1),
+                ),
               ),
             ),
-          ),
-        ),
-        initialRoute: DashboardScreen.routeName,
-        routes: {
-          DashboardScreen.routeName: (_) => const DashboardScreen(),
-          DangerDetectionScreen.routeName: (_) => const DangerDetectionScreen(),
-          HealthScreen.routeName: (_) => const HealthScreen(),
-          HeartRateAnalysisScreen.routeName: (_) => const HeartRateAnalysisScreen(),
-          LiveDashboardScreen.routeName: (_) => const LiveDashboardScreen(),
-          PulseLiveScreen.routeName: (_) => const PulseLiveScreen(),
-          SettingsScreen.routeName: (_) => const SettingsScreen(),
-        },
-      );
+            initialRoute: DashboardScreen.routeName,
+            routes: {
+              DashboardScreen.routeName: (_) => const DashboardScreen(),
+              DangerDetectionScreen.routeName: (_) =>
+                  const DangerDetectionScreen(),
+              HealthScreen.routeName: (_) => const HealthScreen(),
+              HeartRateAnalysisScreen.routeName: (_) =>
+                  const HeartRateAnalysisScreen(),
+              LiveDashboardScreen.routeName: (_) => const LiveDashboardScreen(),
+              PulseLiveScreen.routeName: (_) => const PulseLiveScreen(),
+              SettingsScreen.routeName: (_) => const SettingsScreen(),
+              DeviceDiagnosticsScreen.routeName: (_) =>
+                  const DeviceDiagnosticsScreen(),
+            },
+          );
         },
       ),
     );
@@ -192,9 +195,7 @@ class DashboardViewModel extends ChangeNotifier {
   bool get isLoading => _currentSnapshot == null && _isFetching;
   bool _isFetching = false;
 
-  DashboardViewModel({
-    required this.iotService,
-  }) {
+  DashboardViewModel({required this.iotService}) {
     debugPrint("DASHBOARD VIEWMODEL CREATED");
     debugPrint("SUBSCRIBING ENV STREAM NOW");
     _envSub?.cancel();
@@ -242,15 +243,15 @@ class DashboardViewModel extends ChangeNotifier {
         notifyListeners();
       },
     );
-
   }
 
   void _appendHeartRate(int value) {
     _heartRateHistory = [..._heartRateHistory, value];
     if (_heartRateHistory.length > 60) {
       // Keep last 60 points (~2 minutes at 2s interval).
-      _heartRateHistory =
-          _heartRateHistory.sublist(_heartRateHistory.length - 60);
+      _heartRateHistory = _heartRateHistory.sublist(
+        _heartRateHistory.length - 60,
+      );
     }
   }
 
@@ -262,4 +263,3 @@ class DashboardViewModel extends ChangeNotifier {
     super.dispose();
   }
 }
-

@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../gen/app_localizations.dart';
 import '../services/pulse_view_model.dart';
 import '../utils/constants.dart';
+import '../config/api_config.dart';
 
 class HealthScreen extends StatefulWidget {
   static const String routeName = '/health';
@@ -31,12 +32,21 @@ class _HealthScreenState extends State<HealthScreen>
       upperBound: 1.0,
     )..repeat(reverse: true);
 
-    _scaleAnimation =
-        CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
+    _scaleAnimation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeInOut,
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final viewModel = context.read<PulseViewModel>();
+      viewModel.updateEndpoint(Uri.parse(ApiConfig.heartRateBaseUrl));
+      viewModel.start();
+    });
   }
 
   @override
   void dispose() {
+    context.read<PulseViewModel>().stop();
     _controller.dispose();
     super.dispose();
   }
@@ -48,11 +58,8 @@ class _HealthScreenState extends State<HealthScreen>
     final bpm = viewModel.currentValue ?? 0;
     final history = viewModel.history;
 
-
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.heartHealthTitle),
-      ),
+      appBar: AppBar(title: Text(l10n.heartHealthTitle)),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.lg),
@@ -62,8 +69,10 @@ class _HealthScreenState extends State<HealthScreen>
                 flex: 3,
                 child: Center(
                   child: ScaleTransition(
-                    scale: Tween<double>(begin: 0.95, end: 1.05)
-                        .animate(_scaleAnimation),
+                    scale: Tween<double>(
+                      begin: 0.95,
+                      end: 1.05,
+                    ).animate(_scaleAnimation),
                     child: Container(
                       width: 180,
                       height: 180,
@@ -96,9 +105,7 @@ class _HealthScreenState extends State<HealthScreen>
                           const SizedBox(height: AppSpacing.sm),
                           Text(
                             bpm > 0 ? bpm.toString() : '--',
-                            style: Theme.of(context)
-                                .textTheme
-                                .displaySmall
+                            style: Theme.of(context).textTheme.displaySmall
                                 ?.copyWith(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
@@ -107,11 +114,11 @@ class _HealthScreenState extends State<HealthScreen>
                           const SizedBox(height: 4),
                           Text(
                             'BPM',
-                            style:
-                                Theme.of(context).textTheme.labelLarge?.copyWith(
-                                      color: AppColors.textSecondary,
-                                      letterSpacing: 1.2,
-                                    ),
+                            style: Theme.of(context).textTheme.labelLarge
+                                ?.copyWith(
+                                  color: AppColors.textSecondary,
+                                  letterSpacing: 1.2,
+                                ),
                           ),
                         ],
                       ),
@@ -120,20 +127,15 @@ class _HealthScreenState extends State<HealthScreen>
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
-              Expanded(
-                flex: 3,
-                child: _HeartRateChart(
-                  values: history,
-                ),
-              ),
+              Expanded(flex: 3, child: _HeartRateChart(values: history)),
               const SizedBox(height: AppSpacing.md),
               Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
                   l10n.realTimeHeartRateTrend,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ),
             ],
@@ -158,10 +160,7 @@ class _HeartRateChart extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         gradient: const LinearGradient(
-          colors: [
-            Color(0xFF020617),
-            Color(0xFF0F172A),
-          ],
+          colors: [Color(0xFF020617), Color(0xFF0F172A)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -176,9 +175,9 @@ class _HeartRateChart extends StatelessWidget {
           : Center(
               child: Text(
                 l10n.waitingForHeartRateData,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
               ),
             ),
     );
@@ -219,15 +218,14 @@ class _HeartRateChartPainter extends CustomPainter {
     Offset pointFor(int index, int value) {
       final double x = index * dxStep;
       final double normalized = (value - minValue) / delta;
-      final double y = size.height - paddingBottom - normalized *
-          (size.height - paddingTop - paddingBottom);
+      final double y =
+          size.height -
+          paddingBottom -
+          normalized * (size.height - paddingTop - paddingBottom);
       return Offset(x, y);
     }
 
-    path.moveTo(
-      pointFor(0, values[0]).dx,
-      pointFor(0, values[0]).dy,
-    );
+    path.moveTo(pointFor(0, values[0]).dx, pointFor(0, values[0]).dy);
 
     for (int i = 1; i < values.length; i++) {
       final p = pointFor(i, values[i]);

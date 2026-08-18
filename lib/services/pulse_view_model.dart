@@ -5,12 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'esp_pulse_service.dart';
 import 'heart_rate_analytics_service.dart';
 
-enum PulseConnectionState {
-  connecting,
-  connected,
-  noData,
-  error,
-}
+enum PulseConnectionState { connecting, connected, noData, error }
 
 class PulseViewModel extends ChangeNotifier {
   final EspPulseService service;
@@ -25,7 +20,6 @@ class PulseViewModel extends ChangeNotifier {
 
   PulseConnectionState _connectionState = PulseConnectionState.connecting;
   Object? _lastError;
-  DateTime? _lastSuccessAt;
 
   int? get currentValue => _currentValue;
 
@@ -46,7 +40,9 @@ class PulseViewModel extends ChangeNotifier {
       case PulseConnectionState.noData:
         return 'No data yet';
       case PulseConnectionState.error:
-        return _lastError == null ? 'Disconnected' : 'Error: ${_lastError.runtimeType}';
+        return _lastError == null
+            ? 'Disconnected'
+            : 'Error: ${_lastError.runtimeType}';
     }
   }
 
@@ -54,9 +50,7 @@ class PulseViewModel extends ChangeNotifier {
     required this.service,
     this.interval = const Duration(milliseconds: 500),
     HeartRateAnalyticsService? analyticsService,
-  }) : this.analyticsService = analyticsService ?? HeartRateAnalyticsService() {
-    start();
-  }
+  }) : analyticsService = analyticsService ?? HeartRateAnalyticsService();
 
   void start() {
     if (_isPolling) return;
@@ -66,29 +60,34 @@ class PulseViewModel extends ChangeNotifier {
     _pollOnce();
   }
 
+  void stop() {
+    _timer?.cancel();
+    _timer = null;
+    _isPolling = false;
+  }
+
+  void updateEndpoint(Uri endpoint) {
+    service.updateEndpoint(endpoint);
+    _lastError = null;
+    _connectionState = PulseConnectionState.connecting;
+  }
+
   Future<void> _pollOnce() async {
     try {
       final value = await service.fetchHeartRateBpm();
       _currentValue = value;
       _append(value);
-      
+
       // Store to analytics database (fire-and-forget)
       analyticsService.storeReading(value, isResting: value < 90);
-      
+
       _lastError = null;
-      _lastSuccessAt = DateTime.now();
       _connectionState = PulseConnectionState.connected;
       notifyListeners();
     } catch (e) {
       _lastError = e;
       debugPrint('PulseViewModel ERROR: $e');
-      // If we have never succeeded, we are still "connecting".
-      if (_lastSuccessAt == null) {
-        _connectionState = PulseConnectionState.connecting;
-      } else {
-        // If we had a previous success, treat as error/disconnected.
-        _connectionState = PulseConnectionState.error;
-      }
+      _connectionState = PulseConnectionState.error;
       notifyListeners();
     }
   }
@@ -103,7 +102,7 @@ class PulseViewModel extends ChangeNotifier {
 
   @override
   void dispose() {
-    _timer?.cancel();
+    stop();
     super.dispose();
   }
 }

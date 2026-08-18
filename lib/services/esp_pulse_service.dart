@@ -4,16 +4,23 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class EspPulseService {
-  final Uri endpoint;
+  Uri endpoint;
+  final http.Client _client;
 
-  EspPulseService({required this.endpoint});
+  EspPulseService({required this.endpoint, http.Client? client})
+    : _client = client ?? http.Client();
+
+  void updateEndpoint(Uri value) => endpoint = value;
 
   Future<int> fetchRawPulseValue() async {
-    final response = await http
+    final response = await _client
         .get(endpoint)
-        .timeout(const Duration(seconds: 2), onTimeout: () {
-      throw TimeoutException('ESP request timed out');
-    });
+        .timeout(
+          const Duration(seconds: 2),
+          onTimeout: () {
+            throw TimeoutException('ESP request timed out');
+          },
+        );
 
     if (response.statusCode != 200) {
       throw StateError('ESP returned status ${response.statusCode}');
@@ -36,11 +43,14 @@ class EspPulseService {
   /// - JSON: {"raw": 512, "bpm": 72}
   /// - Plain text with two numbers: "512,72" or "Raw: 512, BPM: 72"
   Future<int> fetchHeartRateBpm() async {
-    final response = await http
+    final response = await _client
         .get(endpoint)
-        .timeout(const Duration(seconds: 2), onTimeout: () {
-      throw TimeoutException('ESP request timed out');
-    });
+        .timeout(
+          const Duration(seconds: 2),
+          onTimeout: () {
+            throw TimeoutException('ESP request timed out');
+          },
+        );
 
     if (response.statusCode != 200) {
       throw StateError('ESP returned status ${response.statusCode}');
@@ -51,7 +61,8 @@ class EspPulseService {
     // Try JSON format first: {"raw": 512, "bpm": 72}
     try {
       final json = jsonDecode(body) as Map<String, dynamic>;
-      final bpm = json['bpm'] ?? json['BPM'] ?? json['heartRate'] ?? json['heart_rate'];
+      final bpm =
+          json['bpm'] ?? json['BPM'] ?? json['heartRate'] ?? json['heart_rate'];
       if (bpm != null) {
         return (bpm is int) ? bpm : int.parse(bpm.toString());
       }
@@ -72,7 +83,9 @@ class EspPulseService {
     }
 
     // Try pattern: "Real Heart Rate: 120" or "Heart Rate: 72"
-    final heartRateMatch = RegExp(r'[Hh]eart\s*[Rr]ate[\s\w]*:\s*(\d+)').firstMatch(body);
+    final heartRateMatch = RegExp(
+      r'[Hh]eart\s*[Rr]ate[\s\w]*:\s*(\d+)',
+    ).firstMatch(body);
     if (heartRateMatch != null) {
       return int.parse(heartRateMatch.group(1)!);
     }

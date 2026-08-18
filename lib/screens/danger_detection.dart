@@ -53,28 +53,72 @@ class _DangerDetectionScreenState extends State<DangerDetectionScreen> {
       ),
       body: Column(
         children: [
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.fromLTRB(
+              AppSpacing.md,
+              AppSpacing.md,
+              AppSpacing.md,
+              0,
+            ),
+            padding: const EdgeInsets.all(AppSpacing.sm),
+            decoration: BoxDecoration(
+              color: Colors.orange.withValues(alpha: .12),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.orange.withValues(alpha: .4)),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.science_outlined, color: Colors.orange),
+                SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Text(
+                    'Demo detection: camera capture is real, but object labels are currently simulated.',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (service.error != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                AppSpacing.sm,
+                AppSpacing.md,
+                0,
+              ),
+              child: Text(
+                'Camera error: ${service.error}',
+                style: const TextStyle(color: AppColors.accentRed),
+              ),
+            ),
           // Status Card
           _buildStatusCard(service, lastDetection),
 
           const SizedBox(height: AppSpacing.md),
 
           // Detection History
-          Expanded(
-            child: _buildDetectionList(service),
-          ),
+          Expanded(child: _buildDetectionList(service)),
         ],
       ),
     );
   }
 
-  Widget _buildStatusCard(DangerDetectionService service, DetectedObject? lastDetection) {
-    final isDanger = (lastDetection?.dangerLevel.index ?? 0) >= DangerLevel.medium.index;
+  Widget _buildStatusCard(
+    DangerDetectionService service,
+    DetectedObject? lastDetection,
+  ) {
+    final isDanger =
+        (lastDetection?.dangerLevel.index ?? 0) >= DangerLevel.medium.index;
+    final hasError = service.error != null;
     return Container(
       margin: const EdgeInsets.all(AppSpacing.md),
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        color: isDanger ? Colors.red.withOpacity(0.2) : AppColors.cardBackground,
+        color: isDanger
+            ? Colors.red.withOpacity(0.2)
+            : AppColors.cardBackground,
         border: Border.all(
           color: isDanger ? Colors.red : AppColors.border,
           width: isDanger ? 2 : 1,
@@ -86,13 +130,25 @@ class _DangerDetectionScreenState extends State<DangerDetectionScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
-                isDanger ? Icons.warning : Icons.check_circle,
-                color: isDanger ? Colors.red : AppColors.accentGreen,
+                isDanger
+                    ? Icons.warning
+                    : hasError
+                    ? Icons.cloud_off
+                    : Icons.check_circle,
+                color: isDanger
+                    ? Colors.red
+                    : hasError
+                    ? AppColors.accentRed
+                    : AppColors.accentGreen,
                 size: 48,
               ),
               const SizedBox(width: AppSpacing.md),
               Text(
-                isDanger ? 'DANGER DETECTED!' : 'Monitoring Active',
+                isDanger
+                    ? 'DANGER DETECTED!'
+                    : hasError
+                    ? 'Camera unavailable'
+                    : 'Demo monitoring active',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   color: isDanger ? Colors.red : AppColors.textPrimary,
                   fontWeight: FontWeight.bold,
@@ -117,17 +173,30 @@ class _DangerDetectionScreenState extends State<DangerDetectionScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _buildIndicatorDot('Safe', AppColors.accentGreen, 
-                lastDetection?.dangerLevel == DangerLevel.none || lastDetection == null),
+              _buildIndicatorDot(
+                'Safe',
+                AppColors.accentGreen,
+                lastDetection?.dangerLevel == DangerLevel.none ||
+                    lastDetection == null,
+              ),
               const SizedBox(width: AppSpacing.md),
-              _buildIndicatorDot('Low', Colors.yellow, 
-                lastDetection?.dangerLevel == DangerLevel.low),
+              _buildIndicatorDot(
+                'Low',
+                Colors.yellow,
+                lastDetection?.dangerLevel == DangerLevel.low,
+              ),
               const SizedBox(width: AppSpacing.md),
-              _buildIndicatorDot('Medium', Colors.orange, 
-                lastDetection?.dangerLevel == DangerLevel.medium),
+              _buildIndicatorDot(
+                'Medium',
+                Colors.orange,
+                lastDetection?.dangerLevel == DangerLevel.medium,
+              ),
               const SizedBox(width: AppSpacing.md),
-              _buildIndicatorDot('High', Colors.red, 
-                lastDetection?.dangerLevel == DangerLevel.high),
+              _buildIndicatorDot(
+                'High',
+                Colors.red,
+                lastDetection?.dangerLevel == DangerLevel.high,
+              ),
             ],
           ),
         ],
@@ -174,9 +243,9 @@ class _DangerDetectionScreenState extends State<DangerDetectionScreen> {
             const SizedBox(height: AppSpacing.md),
             Text(
               'No dangers detected',
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: AppColors.textSecondary,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyLarge?.copyWith(color: AppColors.textSecondary),
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
@@ -216,17 +285,11 @@ class _DangerDetectionScreenState extends State<DangerDetectionScreen> {
             color: color.withOpacity(0.2),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(
-            _getDangerIcon(detection.dangerLevel),
-            color: color,
-          ),
+          child: Icon(_getDangerIcon(detection.dangerLevel), color: color),
         ),
         title: Text(
           detection.label.toUpperCase(),
-          style: TextStyle(
-            color: color,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: color, fontWeight: FontWeight.bold),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

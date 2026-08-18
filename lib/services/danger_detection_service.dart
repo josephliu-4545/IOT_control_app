@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:vibration/vibration.dart';
 import '../config/api_config.dart';
@@ -37,6 +36,7 @@ class DangerDetectionService extends ChangeNotifier {
   String? get error => _error;
 
   Timer? _captureTimer;
+  bool _captureInProgress = false;
 
   // Dangerous objects to detect (simple keyword-based detection)
   final Map<String, DangerLevel> _dangerousObjects = {
@@ -63,6 +63,7 @@ class DangerDetectionService extends ChangeNotifier {
     _captureTimer = Timer.periodic(const Duration(seconds: 2), (_) {
       _captureAndAnalyze();
     });
+    _captureAndAnalyze();
 
     debugPrint('DangerDetection: Started monitoring');
   }
@@ -76,6 +77,8 @@ class DangerDetectionService extends ChangeNotifier {
   }
 
   Future<void> _captureAndAnalyze() async {
+    if (_captureInProgress) return;
+    _captureInProgress = true;
     try {
       final bytes = await Esp32CamService().captureJpeg(
         captureUrl: ApiConfig.esp32CamCaptureUrl,
@@ -108,6 +111,9 @@ class DangerDetectionService extends ChangeNotifier {
     } catch (e) {
       debugPrint('DangerDetection ERROR: $e');
       _error = e.toString();
+      notifyListeners();
+    } finally {
+      _captureInProgress = false;
     }
   }
 
@@ -136,11 +142,13 @@ class DangerDetectionService extends ChangeNotifier {
 
   Future<void> _triggerAlert(DetectedObject detection) async {
     // Vibrate if available
-    if (await Vibration.hasVibrator() ?? false) {
+    if (await Vibration.hasVibrator()) {
       await Vibration.vibrate(pattern: [0, 500, 200, 500]);
     }
 
-    debugPrint('DangerDetection ALERT: ${detection.label} (${detection.dangerLevel})');
+    debugPrint(
+      'DangerDetection ALERT: ${detection.label} (${detection.dangerLevel})',
+    );
   }
 
   void clearDetections() {

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../gen/app_localizations.dart';
 import '../services/locale_provider.dart';
 import '../services/tts_service.dart';
 import '../config/api_config.dart';
 import '../utils/constants.dart';
+import 'device_diagnostics.dart';
 
 class SettingsScreen extends StatefulWidget {
   static const String routeName = '/settings';
@@ -22,31 +22,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
   List<String> _availableTtsLanguages = [];
   bool _ttsChecked = false;
   final TextEditingController _esp32CamController = TextEditingController();
+  final TextEditingController _heartRateController = TextEditingController();
   String _esp32CamUrl = '';
 
   @override
   void initState() {
     super.initState();
     _checkTtsLanguages();
-    _loadEsp32CamUrl();
+    _loadDeviceUrls();
   }
 
-  Future<void> _loadEsp32CamUrl() async {
-    final prefs = await SharedPreferences.getInstance();
-    final savedUrl = prefs.getString('esp32_cam_url') ?? ApiConfig.esp32CamBaseUrl;
+  void _loadDeviceUrls() {
     setState(() {
-      _esp32CamUrl = savedUrl;
-      _esp32CamController.text = savedUrl;
+      _esp32CamUrl = ApiConfig.esp32CamBaseUrl;
+      _esp32CamController.text = ApiConfig.esp32CamBaseUrl;
+      _heartRateController.text = ApiConfig.heartRateBaseUrl;
     });
   }
 
   Future<void> _saveEsp32CamUrl(String url) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('esp32_cam_url', url);
-    ApiConfig.updateEsp32CamUrl(url);
+    await ApiConfig.updateEsp32CamUrl(url);
     setState(() {
-      _esp32CamUrl = url;
+      _esp32CamUrl = ApiConfig.esp32CamBaseUrl;
+      _esp32CamController.text = ApiConfig.esp32CamBaseUrl;
     });
+  }
+
+  @override
+  void dispose() {
+    _esp32CamController.dispose();
+    _heartRateController.dispose();
+    _tts.stop();
+    super.dispose();
   }
 
   Future<void> _checkTtsLanguages() async {
@@ -114,49 +121,210 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final selectedTag = currentLocale?.toLanguageTag();
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.settingsTitle),
-      ),
+      appBar: AppBar(title: Text(l10n.settingsTitle)),
       body: SafeArea(
-        child: Padding(
+        child: ListView(
           padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                l10n.language,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.border),
-                  color: AppColors.cardBackground,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              decoration: BoxDecoration(
+                color: AppColors.accentBlue.withValues(alpha: .1),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: AppColors.accentBlue.withValues(alpha: .35),
                 ),
-                child: Column(
-                  children: [
-                    for (final locale in supportedLocales)
-                      RadioListTile<String>(
-                        value: locale.toLanguageTag(),
-                        groupValue: selectedTag,
-                        title: Row(
-                          children: [
-                            Expanded(child: Text(_localeLabel(locale))),
-                            _buildTtsIndicator(locale),
-                          ],
-                        ),
-                        onChanged: (value) {
-                          if (value == null) return;
-                          localeProvider.setLocale(locale);
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Device setup',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    'Configure addresses and verify that this device can reach your camera and heart sensor.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  FilledButton.icon(
+                    onPressed: () => Navigator.pushNamed(
+                      context,
+                      DeviceDiagnosticsScreen.routeName,
+                    ),
+                    icon: const Icon(Icons.health_and_safety_outlined),
+                    label: const Text('Open device diagnostics'),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            Text(l10n.language, style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: AppSpacing.sm),
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.border),
+                color: AppColors.cardBackground,
+              ),
+              child: Column(
+                children: [
+                  for (final locale in supportedLocales)
+                    RadioListTile<String>(
+                      value: locale.toLanguageTag(),
+                      groupValue: selectedTag,
+                      title: Row(
+                        children: [
+                          Expanded(child: Text(_localeLabel(locale))),
+                          _buildTtsIndicator(locale),
+                        ],
+                      ),
+                      onChanged: (value) {
+                        if (value == null) return;
+                        localeProvider.setLocale(locale);
+                      },
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+
+            // ESP32-CAM Configuration
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                color: AppColors.cardBackground,
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'ESP32-CAM Configuration',
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(
+                    'Camera URL:',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  TextField(
+                    controller: _esp32CamController,
+                    decoration: InputDecoration(
+                      hintText: 'http://192.168.1.100/',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.save),
+                        onPressed: () {
+                          final url = _esp32CamController.text.trim();
+                          final error = ApiConfig.validateDeviceUrl(url);
+                          if (error != null) {
+                            ScaffoldMessenger.of(
+                              context,
+                            ).showSnackBar(SnackBar(content: Text(error)));
+                            return;
+                          }
+                          _saveEsp32CamUrl(url);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('ESP32-CAM URL saved'),
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
                         },
                       ),
-                  ],
-                ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(
+                    'Current: $_esp32CamUrl',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  Text(
+                    'Heart-rate sensor URL:',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  TextField(
+                    controller: _heartRateController,
+                    keyboardType: TextInputType.url,
+                    autocorrect: false,
+                    decoration: InputDecoration(
+                      hintText: 'http://192.168.1.101/',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      suffixIcon: IconButton(
+                        tooltip: 'Save heart-rate sensor address',
+                        icon: const Icon(Icons.save),
+                        onPressed: () async {
+                          final url = _heartRateController.text.trim();
+                          final error = ApiConfig.validateDeviceUrl(url);
+                          if (error != null) {
+                            ScaffoldMessenger.of(
+                              context,
+                            ).showSnackBar(SnackBar(content: Text(error)));
+                            return;
+                          }
+                          await ApiConfig.updateHeartRateUrl(url);
+                          _heartRateController.text =
+                              ApiConfig.heartRateBaseUrl;
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Heart-rate sensor URL saved'),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Container(
+                    padding: const EdgeInsets.all(AppSpacing.sm),
+                    decoration: BoxDecoration(
+                      color: AppColors.accentBlue.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'How to find your ESP32-CAM IP:',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: AppSpacing.xs),
+                        Text(
+                          '• Connect to ESP32-CAM WiFi hotspot\n' +
+                              '• Open Serial Monitor to see IP\n' +
+                              '• Or check your router\'s connected devices',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: AppSpacing.md),
-              
-              // ESP32-CAM Configuration
+            ),
+
+            const SizedBox(height: AppSpacing.md),
+            if (_ttsChecked && _availableTtsLanguages.isNotEmpty)
               Container(
                 padding: const EdgeInsets.all(AppSpacing.md),
                 decoration: BoxDecoration(
@@ -168,121 +336,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'ESP32-CAM Configuration',
+                      'Text-to-Speech Availability',
                       style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textSecondary,
-                          ),
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                     const SizedBox(height: AppSpacing.sm),
-                    Text(
-                      'Camera URL:',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                    const SizedBox(height: AppSpacing.xs),
-                    TextField(
-                      controller: _esp32CamController,
-                      decoration: InputDecoration(
-                        hintText: 'http://192.168.1.100/',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
+                    Row(
+                      children: [
+                        Icon(Icons.check_circle, color: Colors.green, size: 16),
+                        const SizedBox(width: AppSpacing.xs),
+                        Text(
+                          'TTS available',
+                          style: Theme.of(context).textTheme.bodySmall,
                         ),
-                        suffixIcon: IconButton(
-                          icon: const Icon(Icons.save),
-                          onPressed: () {
-                            final url = _esp32CamController.text.trim();
-                            if (url.isNotEmpty) {
-                              _saveEsp32CamUrl(url);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('ESP32-CAM URL saved'),
-                                  duration: Duration(seconds: 2),
-                                ),
-                              );
-                            }
-                          },
+                        const SizedBox(width: AppSpacing.md),
+                        Icon(
+                          Icons.warning_amber_rounded,
+                          color: Colors.orange,
+                          size: 16,
                         ),
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    Text(
-                      'Current: $_esp32CamUrl',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    Container(
-                      padding: const EdgeInsets.all(AppSpacing.sm),
-                      decoration: BoxDecoration(
-                        color: AppColors.accentBlue.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'How to find your ESP32-CAM IP:',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                          ),
-                          const SizedBox(height: AppSpacing.xs),
-                          Text(
-                            '• Connect to ESP32-CAM WiFi hotspot\n' +
-                            '• Open Serial Monitor to see IP\n' +
-                            '• Or check your router\'s connected devices',
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ],
-                      ),
+                        const SizedBox(width: AppSpacing.xs),
+                        Text(
+                          'TTS unavailable (will use English)',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
-              
-              const SizedBox(height: AppSpacing.md),
-              if (_ttsChecked && _availableTtsLanguages.isNotEmpty)
-                Container(
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    color: AppColors.cardBackground,
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Text-to-Speech Availability',
-                        style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textSecondary,
-                            ),
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
-                      Row(
-                        children: [
-                          Icon(Icons.check_circle, color: Colors.green, size: 16),
-                          const SizedBox(width: AppSpacing.xs),
-                          Text(
-                            'TTS available',
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                          const SizedBox(width: AppSpacing.md),
-                          Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 16),
-                          const SizedBox(width: AppSpacing.xs),
-                          Text(
-                            'TTS unavailable (will use English)',
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
+          ],
         ),
       ),
     );

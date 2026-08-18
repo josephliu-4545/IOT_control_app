@@ -1,4 +1,4 @@
-﻿// lib/screens/dashboard.dart
+// lib/screens/dashboard.dart
 import 'dart:async';
 import 'dart:typed_data';
 
@@ -13,6 +13,7 @@ import '../services/environment_analysis_api_service.dart';
 import '../services/tts_service.dart';
 import '../services/esp32_cam_service.dart';
 import 'settings.dart';
+import 'device_diagnostics.dart';
 import '../utils/constants.dart';
 import '../widgets/sensor_card.dart';
 import 'health.dart';
@@ -27,12 +28,6 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-
-  // Local dummy state for smart glasses ecosystem.
-  bool _glassesConnected = true;
-  bool _glassesCameraOn = false;
-  double _glassesTemperatureC = 26.5;
-
   final TtsService _tts = TtsService();
   bool _autoSpeakEnvAnalysis = true;
   String? _lastSpokenEnvSummary;
@@ -52,8 +47,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
-    debugPrint('ESP32-CAM PREVIEW URL (stream): ${ApiConfig.esp32CamStreamUrl}');
-    debugPrint('ESP32-CAM PREVIEW URL (capture): ${ApiConfig.esp32CamCaptureUrl}');
+    debugPrint(
+      'ESP32-CAM PREVIEW URL (stream): ${ApiConfig.esp32CamStreamUrl}',
+    );
+    debugPrint(
+      'ESP32-CAM PREVIEW URL (capture): ${ApiConfig.esp32CamCaptureUrl}',
+    );
     _useCapturePreview = true;
     debugPrint('ESP32-CAM PREVIEW MODE: capture (forced)');
     _startCapturePreview();
@@ -148,17 +147,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   void _startCapturePreview() {
     if (_capturePreviewTimer != null) return;
-    debugPrint('ESP32-CAM CAPTURE PREVIEW: starting timer (700ms)');
-    _capturePreviewTimer = Timer.periodic(
-      const Duration(milliseconds: 700),
-      (_) {
-        _previewTick += 1;
-        if (_previewTick % 10 == 0) {
-          debugPrint('ESP32-CAM CAPTURE PREVIEW: tick=$_previewTick');
-        }
-        _fetchPreviewFrame();
-      },
-    );
+    debugPrint('ESP32-CAM CAPTURE PREVIEW: starting timer (2s)');
+    _capturePreviewTimer = Timer.periodic(const Duration(seconds: 2), (_) {
+      _previewTick += 1;
+      if (_previewTick % 10 == 0) {
+        debugPrint('ESP32-CAM CAPTURE PREVIEW: tick=$_previewTick');
+      }
+      _fetchPreviewFrame();
+    });
     _fetchPreviewFrame();
   }
 
@@ -184,7 +180,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       debugPrint('ESP32-CAM CAPTURE PREVIEW ERROR: $e');
       if (!mounted) return;
       setState(() {
-        _esp32CamErrorMessage = 'Failed to connect to ESP32-CAM. Please check your connection.';
+        _esp32CamErrorMessage =
+            'Failed to connect to ESP32-CAM. Please check your connection.';
       });
     } finally {
       _isFetchingPreviewFrame = false;
@@ -199,6 +196,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final snapshot = viewModel.currentSnapshot;
     final isLoading = viewModel.isLoading;
     final EnvironmentAnalysis? latestEnv = viewModel.latestEnvironmentAnalysis;
+    final glasses = viewModel.glassesSnapshot;
     debugPrint("ENV MODEL: $latestEnv");
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -243,124 +241,142 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ],
       ),
       body: SafeArea(
-        child: Padding(
+        child: ListView(
           padding: const EdgeInsets.all(AppSpacing.md),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(context, snapshot, isLoading),
-              const SizedBox(height: AppSpacing.md),
+          children: [
+            _buildHeader(context, snapshot, isLoading),
+            const SizedBox(height: AppSpacing.md),
 
-              _buildEnvironmentAnalysisCard(context, latestEnv),
-              const SizedBox(height: AppSpacing.md),
+            _buildEnvironmentAnalysisCard(context, latestEnv),
+            const SizedBox(height: AppSpacing.md),
 
-              Expanded(
-                child: GridView.count(
-                  crossAxisCount: 2,
-                  childAspectRatio: 1.2,
-                  children: [
-                    SensorCard(
-                      title: l10n.heartRate,
-                      value: snapshot?.heartRateBpm.toString() ?? '--',
-                      unit: 'BPM',
-                      icon: Icons.favorite,
-                      accentColor: AppColors.accentRed,
-                      subtitle: snapshot == null
-                          ? l10n.waitingForData
-                          : l10n.stable,
-                      onTap: () {
-                        Navigator.of(context)
-                            .pushNamed(HealthScreen.routeName);
-                      },
-                    ),
-                    SensorCard(
-                      title: l10n.oxygen,
-                      value: snapshot?.oxygenPercent.toString() ?? '--',
-                      unit: '%',
-                      icon: Icons.bubble_chart,
-                      accentColor: AppColors.accentBlue,
-                      subtitle: l10n.spo2Level,
-                    ),
-                    SensorCard(
-                      title: l10n.wifiSignal,
-                      value: snapshot?.wifiSignal.toString() ?? '--',
-                      unit: '%',
-                      icon: Icons.wifi,
-                      accentColor: AppColors.accentGreen,
-                      subtitle: snapshot == null
-                          ? null
-                          : _wifiLabel(snapshot.wifiSignal),
-                      onTap: () => _showWifiInfoDialog(context, snapshot),
-                    ),
-                    SensorCard(
-                      title: l10n.battery,
-                      value: snapshot?.batteryLevel.toString() ?? '--',
-                      unit: '%',
-                      icon: Icons.battery_full,
-                      accentColor: Colors.amber,
-                      subtitle: snapshot == null
-                          ? null
-                          : _batteryLabel(snapshot.batteryLevel),
-                      onTap: () => _showBatteryDetailsSheet(context, snapshot),
-                    ),
-                    SensorCard(
-                      title: l10n.solar,
-                      value: snapshot == null
-                          ? '--'
-                          : (snapshot.isChargingSolar ? l10n.charging : l10n.idle),
-                      icon: Icons.wb_sunny,
-                      accentColor: Colors.orangeAccent,
-                      subtitle: snapshot == null
-                          ? null
-                          : (snapshot.isChargingSolar
-                              ? l10n.harvestingEnergy
-                              : l10n.noSolarInput),
-                      onTap: () => _showSolarInfoDialog(context, snapshot),
-                    ),
-                    // Smart glasses: camera control.
-                    SensorCard(
-                      title: l10n.glassesCamera,
-                      value: _glassesCameraOn ? l10n.on : l10n.off,
-                      icon: Icons.videocam,
-                      accentColor: AppColors.accentBlue,
-                      subtitle: l10n.tapToToggleDummy,
-                      onTap: () => _showGlassesCameraSheet(context),
-                    ),
-                    // Smart glasses: environment / temperature monitor.
-                    SensorCard(
-                      title: l10n.glassesEnv,
-                      value: '${_glassesTemperatureC.toStringAsFixed(1)}',
-                      unit: '°C',
-                      icon: Icons.thermostat,
-                      accentColor: AppColors.accentGreen,
-                      subtitle: l10n.ambientTemperature,
-                      onTap: () => _showGlassesEnvironmentDialog(context),
-                    ),
-                    // Smart glasses: connection status.
-                    SensorCard(
-                      title: l10n.glassesLink,
-                      value: _glassesConnected ? l10n.connected : l10n.offline,
-                      icon: Icons.vrpano,
-                      accentColor:
-                          _glassesConnected ? AppColors.accentGreen : AppColors.accentRed,
-                      subtitle: l10n.smartGlassesStatus,
-                      onTap: () => _showGlassesConnectionDialog(context),
-                    ),
-                  ],
+            GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: 2,
+              childAspectRatio: 1.2,
+              children: [
+                SensorCard(
+                  title: l10n.heartRate,
+                  value: snapshot?.heartRateBpm.toString() ?? '--',
+                  unit: 'BPM',
+                  icon: Icons.favorite,
+                  accentColor: AppColors.accentRed,
+                  subtitle: snapshot == null
+                      ? l10n.waitingForData
+                      : l10n.stable,
+                  onTap: () {
+                    Navigator.of(context).pushNamed(HealthScreen.routeName);
+                  },
                 ),
-              ),
-            ],
-          ),
+                SensorCard(
+                  title: l10n.oxygen,
+                  value: snapshot?.oxygenPercent.toString() ?? '--',
+                  unit: '%',
+                  icon: Icons.bubble_chart,
+                  accentColor: AppColors.accentBlue,
+                  subtitle: l10n.spo2Level,
+                ),
+                SensorCard(
+                  title: l10n.wifiSignal,
+                  value: snapshot?.wifiSignal.toString() ?? '--',
+                  unit: '%',
+                  icon: Icons.wifi,
+                  accentColor: AppColors.accentGreen,
+                  subtitle: snapshot == null
+                      ? null
+                      : _wifiLabel(snapshot.wifiSignal),
+                  onTap: () => _showWifiInfoDialog(context, snapshot),
+                ),
+                SensorCard(
+                  title: l10n.battery,
+                  value: snapshot?.batteryLevel.toString() ?? '--',
+                  unit: '%',
+                  icon: Icons.battery_full,
+                  accentColor: Colors.amber,
+                  subtitle: snapshot == null
+                      ? null
+                      : _batteryLabel(snapshot.batteryLevel),
+                  onTap: () => _showBatteryDetailsSheet(context, snapshot),
+                ),
+                SensorCard(
+                  title: l10n.solar,
+                  value: snapshot == null
+                      ? '--'
+                      : (snapshot.isChargingSolar ? l10n.charging : l10n.idle),
+                  icon: Icons.wb_sunny,
+                  accentColor: Colors.orangeAccent,
+                  subtitle: snapshot == null
+                      ? null
+                      : (snapshot.isChargingSolar
+                            ? l10n.harvestingEnergy
+                            : l10n.noSolarInput),
+                  onTap: () => _showSolarInfoDialog(context, snapshot),
+                ),
+                // Smart glasses: camera control.
+                SensorCard(
+                  title: l10n.glassesCamera,
+                  value: glasses == null
+                      ? '--'
+                      : (glasses.cameraOn ? l10n.on : l10n.off),
+                  icon: Icons.videocam,
+                  accentColor: AppColors.accentBlue,
+                  subtitle: glasses == null
+                      ? 'Waiting for device data'
+                      : 'Prototype control',
+                  onTap: () => _showGlassesCameraSheet(
+                    context,
+                    glasses?.cameraOn ?? false,
+                  ),
+                ),
+                // Smart glasses: environment / temperature monitor.
+                SensorCard(
+                  title: l10n.glassesEnv,
+                  value: glasses == null
+                      ? '--'
+                      : glasses.ambientTemperatureC.toStringAsFixed(1),
+                  unit: '°C',
+                  icon: Icons.thermostat,
+                  accentColor: AppColors.accentGreen,
+                  subtitle: glasses == null
+                      ? 'Waiting for device data'
+                      : l10n.ambientTemperature,
+                  onTap: glasses == null
+                      ? null
+                      : () => _showGlassesEnvironmentDialog(
+                          context,
+                          glasses.ambientTemperatureC,
+                        ),
+                ),
+                // Smart glasses: connection status.
+                SensorCard(
+                  title: l10n.glassesLink,
+                  value: glasses == null
+                      ? '--'
+                      : (glasses.connected ? l10n.connected : l10n.offline),
+                  icon: Icons.vrpano,
+                  accentColor: glasses?.connected == true
+                      ? AppColors.accentGreen
+                      : AppColors.accentRed,
+                  subtitle: glasses == null
+                      ? 'No device status received'
+                      : l10n.smartGlassesStatus,
+                  onTap: glasses == null
+                      ? null
+                      : () => _showGlassesConnectionDialog(
+                          context,
+                          glasses.connected,
+                        ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildHeader(
-    BuildContext context,
-    dynamic snapshot,
-    bool isLoading,
-  ) {
+  Widget _buildHeader(BuildContext context, dynamic snapshot, bool isLoading) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     final bool isOnline = snapshot?.isOnline ?? false;
@@ -405,8 +421,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 isLoading
                     ? l10n.connectingToEsp32Firebase
                     : (isOnline
-                        ? l10n.receivingRealtimeSensorData
-                        : l10n.usingFallbackDummyData),
+                          ? l10n.receivingRealtimeSensorData
+                          : 'No live cloud sensor data received'),
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: AppColors.textSecondary,
                 ),
@@ -431,6 +447,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
   ) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
+    final summary = analysis?.summary?.trim();
+    final hasAnalysis =
+        summary != null &&
+        summary.isNotEmpty &&
+        !summary.toLowerCase().contains('not configured');
+    final riskLevel = analysis?.riskLevel?.trim().toLowerCase();
+    final riskColor = switch (riskLevel) {
+      'high' => AppColors.accentRed,
+      'medium' => Colors.orange,
+      'low' => AppColors.accentGreen,
+      _ => AppColors.textSecondary,
+    };
 
     Future<void> onAnalyzePressed() async {
       final messenger = ScaffoldMessenger.of(context);
@@ -455,7 +483,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         );
       } catch (e) {
         messenger.showSnackBar(
-          SnackBar(content: Text(l10n.failedToAnalyzeEnvironment(e.toString()))),
+          SnackBar(
+            content: Text(l10n.failedToAnalyzeEnvironment(e.toString())),
+          ),
         );
       } finally {
         if (mounted) {
@@ -477,79 +507,157 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.sm),
+                decoration: BoxDecoration(
+                  color: AppColors.accentBlue.withValues(alpha: .12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.auto_awesome_outlined,
+                  color: AppColors.accentBlue,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Environment scan',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      'Camera preview and AI image classification',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.accentBlue.withValues(alpha: .12),
+                  borderRadius: BorderRadius.circular(99),
+                ),
+                child: Text(
+                  'AI',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: AppColors.accentBlue,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
             child: AspectRatio(
               aspectRatio: 4 / 3,
               child: _useCapturePreview
                   ? (_esp32CamErrorMessage != null
-                      ? Container(
-                          color: AppColors.cardBackground,
-                          alignment: Alignment.center,
-                          padding: const EdgeInsets.all(AppSpacing.md),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.videocam_off,
-                                color: AppColors.textSecondary,
-                                size: 32,
-                              ),
-                              const SizedBox(height: AppSpacing.sm),
-                              Text(
-                                'Camera Offline',
-                                style: theme.textTheme.bodyMedium?.copyWith(
+                        ? Container(
+                            color: AppColors.cardBackground,
+                            alignment: Alignment.center,
+                            padding: const EdgeInsets.all(AppSpacing.md),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.videocam_off,
                                   color: AppColors.textSecondary,
-                                  fontWeight: FontWeight.w600,
+                                  size: 32,
                                 ),
-                              ),
-                              const SizedBox(height: AppSpacing.xs),
-                              Text(
-                                _esp32CamErrorMessage!,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: AppColors.textSecondary,
+                                const SizedBox(height: AppSpacing.sm),
+                                Text(
+                                  'Camera Offline',
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: AppColors.textSecondary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: AppSpacing.sm),
-                              Text(
-                                'Check Settings → ESP32-CAM URL',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: AppColors.accentBlue,
-                                  fontWeight: FontWeight.w500,
+                                const SizedBox(height: AppSpacing.xs),
+                                Text(
+                                  _esp32CamErrorMessage!,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: AppColors.textSecondary,
+                                  ),
+                                  textAlign: TextAlign.center,
                                 ),
-                              ),
-                            ],
-                          ),
-                        )
-                      : (_latestPreviewJpeg == null
-                          ? Container(
-                              color: AppColors.cardBackground,
-                              alignment: Alignment.center,
-                              child: const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              ),
-                            )
-                          : Image.memory(
-                              _latestPreviewJpeg!,
-                              fit: BoxFit.cover,
-                              gaplessPlayback: true,
-                              errorBuilder: (context, error, stackTrace) {
-                                debugPrint('ESP32-CAM PREVIEW Image.memory error: $error');
-                                return Container(
+                                const SizedBox(height: AppSpacing.sm),
+                                Text(
+                                  'Check the device address and Wi-Fi connection.',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: AppColors.textSecondary,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: AppSpacing.sm),
+                                Wrap(
+                                  spacing: AppSpacing.sm,
+                                  alignment: WrapAlignment.center,
+                                  children: [
+                                    OutlinedButton.icon(
+                                      onPressed: _fetchPreviewFrame,
+                                      icon: const Icon(Icons.refresh, size: 18),
+                                      label: const Text('Retry'),
+                                    ),
+                                    OutlinedButton.icon(
+                                      onPressed: () => Navigator.pushNamed(
+                                        context,
+                                        DeviceDiagnosticsScreen.routeName,
+                                      ),
+                                      icon: const Icon(Icons.tune, size: 18),
+                                      label: const Text('Diagnostics'),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          )
+                        : (_latestPreviewJpeg == null
+                              ? Container(
                                   color: AppColors.cardBackground,
                                   alignment: Alignment.center,
-                                  child: Text(
-                                    l10n.cameraPreviewUnavailable,
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color: AppColors.textSecondary,
+                                  child: const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
                                     ),
                                   ),
-                                );
-                              },
-                            )))
+                                )
+                              : Image.memory(
+                                  _latestPreviewJpeg!,
+                                  fit: BoxFit.cover,
+                                  gaplessPlayback: true,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    debugPrint(
+                                      'ESP32-CAM PREVIEW Image.memory error: $error',
+                                    );
+                                    return Container(
+                                      color: AppColors.cardBackground,
+                                      alignment: Alignment.center,
+                                      child: Text(
+                                        l10n.cameraPreviewUnavailable,
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(
+                                              color: AppColors.textSecondary,
+                                            ),
+                                      ),
+                                    );
+                                  },
+                                )))
                   : Image.network(
                       ApiConfig.esp32CamStreamUrl,
                       fit: BoxFit.cover,
@@ -583,33 +691,116 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
           const SizedBox(height: AppSpacing.md),
-          (analysis != null)
-              ? Text(
-                  'ENV FOUND: ${analysis.summary}',
-                  style: theme.textTheme.bodyMedium,
-                )
-
-              : Text(
-                  'ENV IS NULL',
-                  style: theme.textTheme.bodyMedium,
+          if (hasAnalysis) ...[
+            Row(
+              children: [
+                Text(
+                  'Latest result',
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: riskColor.withValues(alpha: .12),
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                  child: Text(
+                    riskLevel == null || riskLevel == 'unknown'
+                        ? 'CLASSIFIED'
+                        : '${riskLevel.toUpperCase()} RISK',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: riskColor,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(summary, style: theme.textTheme.bodyMedium),
+            if (analysis!.lighting != null &&
+                analysis.lighting!.toLowerCase() != 'unknown') ...[
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                'Lighting: ${analysis.lighting}',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+            if (analysis.hazards.isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.sm),
+              Wrap(
+                spacing: AppSpacing.sm,
+                runSpacing: AppSpacing.xs,
+                children: analysis.hazards
+                    .map(
+                      (hazard) => Chip(
+                        avatar: const Icon(Icons.warning_amber, size: 16),
+                        label: Text(hazard),
+                      ),
+                    )
+                    .toList(),
+              ),
+            ],
+          ] else
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(AppSpacing.md),
+              decoration: BoxDecoration(
+                color: AppColors.background.withValues(alpha: .45),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                children: [
+                  const Icon(
+                    Icons.image_search_outlined,
+                    color: AppColors.textSecondary,
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    'No environment scan yet',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    'Capture an image to identify what the camera can see.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
           const SizedBox(height: AppSpacing.md),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: Text(l10n.autoSpeakAnalysis),
-            value: _autoSpeakEnvAnalysis,
-            onChanged: (v) {
-              setState(() {
-                _autoSpeakEnvAnalysis = v;
-              });
-            },
+          Material(
+            color: Colors.transparent,
+            child: SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(l10n.autoSpeakAnalysis),
+              value: _autoSpeakEnvAnalysis,
+              onChanged: (v) {
+                setState(() {
+                  _autoSpeakEnvAnalysis = v;
+                });
+              },
+            ),
           ),
           const SizedBox(height: AppSpacing.sm),
           Row(
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: (analysis?.summary == null ||
+                  onPressed:
+                      (analysis?.summary == null ||
                           (analysis!.summary ?? '').trim().isEmpty)
                       ? null
                       : () => _speakEnvSummary(analysis.summary!),
@@ -729,7 +920,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  void _showGlassesCameraSheet(BuildContext context) {
+  void _showGlassesCameraSheet(BuildContext context, bool currentCameraState) {
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: AppColors.cardBackground,
@@ -737,7 +928,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) {
-        bool localCameraState = _glassesCameraOn;
+        bool localCameraState = currentCameraState;
         return StatefulBuilder(
           builder: (context, setModalState) {
             return Padding(
@@ -763,16 +954,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           setModalState(() {
                             localCameraState = value;
                           });
-                          setState(() {
-                            _glassesCameraOn = value;
-                          });
                         },
                       ),
                     ],
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   const Text(
-                    'In the future this will send a command to Firebase/ESP32 to turn the camera on or off.',
+                    'Prototype only: this switch does not yet send a command to the glasses.',
                   ),
                   const SizedBox(height: AppSpacing.lg),
                 ],
@@ -784,7 +972,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  void _showGlassesEnvironmentDialog(BuildContext context) {
+  void _showGlassesEnvironmentDialog(
+    BuildContext context,
+    double temperatureC,
+  ) {
     showDialog<void>(
       context: context,
       builder: (context) {
@@ -793,14 +984,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
           title: const Text('Glasses environment'),
           content: Text(
             'Ambient temperature around smart glasses: '
-            '${_glassesTemperatureC.toStringAsFixed(1)}Â°C (dummy)',
+            '${temperatureC.toStringAsFixed(1)}°C',
           ),
         );
       },
     );
   }
 
-  void _showGlassesConnectionDialog(BuildContext context) {
+  void _showGlassesConnectionDialog(BuildContext context, bool connected) {
     showDialog<void>(
       context: context,
       builder: (context) {
@@ -808,8 +999,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           backgroundColor: AppColors.cardBackground,
           title: const Text('Glasses connection'),
           content: Text(
-            _glassesConnected
-                ? 'Smart glasses are marked as connected (dummy state).'
+            connected
+                ? 'Smart glasses reported a connected state.'
                 : 'Smart glasses are offline.',
           ),
         );
