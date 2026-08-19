@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 
@@ -32,6 +33,8 @@ class EnvironmentAnalysisApiService {
     String? commandId,
   }) async {
     final uri = Uri.parse(baseUrl).replace(path: '/device/upload-image');
+    final stopwatch = Stopwatch()..start();
+    debugPrint('ENVIRONMENT UPLOAD: sending ${jpegBytes.length} bytes to $uri');
 
     final req = http.MultipartRequest('POST', uri);
     req.headers.addAll({
@@ -66,6 +69,10 @@ class EnvironmentAnalysisApiService {
             );
           },
         );
+    debugPrint(
+      'ENVIRONMENT UPLOAD: response headers received in '
+      '${stopwatch.elapsedMilliseconds}ms (HTTP ${streamed.statusCode})',
+    );
     final res = await http.Response.fromStream(streamed);
 
     if (res.statusCode < 200 || res.statusCode >= 300) {

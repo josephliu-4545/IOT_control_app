@@ -243,8 +243,12 @@ class VoiceAssistantService extends ChangeNotifier {
 
   void _onSpeechResult(SpeechRecognitionResult result) {
     _emptyResultTimer?.cancel();
-    _heardWords = result.recognizedWords.trim();
-    if (_heardWords.isNotEmpty) {
+    final recognizedWords = result.recognizedWords.trim();
+    // Some Android recognizers emit a correct partial transcript followed by
+    // an empty final result. Keep the last useful transcript instead of
+    // erasing it immediately before command parsing.
+    if (recognizedWords.isNotEmpty) {
+      _heardWords = recognizedWords;
       _statusMessage = 'Heard: $_heardWords';
       _notify();
     }

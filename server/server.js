@@ -624,8 +624,14 @@ app.get('/device/dashboard', async (req, res) => {
 });
 
 app.post('/device/upload-image', upload.single('image'), async (req, res) => {
+  const requestStartedAt = Date.now();
+  console.log('UPLOAD IMAGE: request received', {
+    bytes: req.file?.size ?? 0,
+    language: req.header('x-lang') || 'en-US',
+  });
   try {
     const { deviceId } = await validateDevice(req);
+    console.log('UPLOAD IMAGE: device authenticated', deviceId);
 
     if (!req.file || !req.file.path || !req.file.filename) {
       return res.status(400).json({ error: 'Missing multipart file field "image"' });
@@ -638,12 +644,18 @@ app.post('/device/upload-image', upload.single('image'), async (req, res) => {
       imageUrl,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
+    console.log('UPLOAD IMAGE: metadata saved');
 
     // Convert image to base64 for AI stub (do NOT store in Firestore; can exceed 1MB doc limit).
     const imageBytes = await fs.promises.readFile(req.file.path);
     const imageBase64 = imageBytes.toString('base64');
 
+    console.log('UPLOAD IMAGE: starting Hugging Face analysis');
     const hfResult = await analyzeImageWithHF(imageBytes);
+    console.log(
+      'UPLOAD IMAGE: Hugging Face finished after',
+      `${Date.now() - requestStartedAt}ms`
+    );
 
     let result;
 
