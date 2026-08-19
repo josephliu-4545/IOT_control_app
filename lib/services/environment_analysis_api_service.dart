@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:typed_data';
+import 'dart:async';
 
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
@@ -10,7 +11,17 @@ class EnvironmentAnalysisApiService {
   final http.Client _client;
 
   EnvironmentAnalysisApiService({http.Client? client})
-      : _client = client ?? http.Client();
+    : _client = client ?? http.Client();
+
+  Future<void> warmUp({String baseUrl = ApiConfig.baseUrl}) async {
+    final uri = Uri.parse(baseUrl).replace(path: '/health');
+    final response = await _client
+        .get(uri)
+        .timeout(const Duration(seconds: 45));
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('Backend warm-up failed: HTTP ${response.statusCode}');
+    }
+  }
 
   Future<Map<String, dynamic>> uploadEnvironmentImage({
     required Uint8List jpegBytes,
@@ -45,7 +56,16 @@ class EnvironmentAnalysisApiService {
       ),
     );
 
-    final streamed = await _client.send(req);
+    final streamed = await _client
+        .send(req)
+        .timeout(
+          const Duration(seconds: 75),
+          onTimeout: () {
+            throw TimeoutException(
+              'Environment analysis timed out after 75 seconds',
+            );
+          },
+        );
     final res = await http.Response.fromStream(streamed);
 
     if (res.statusCode < 200 || res.statusCode >= 300) {

@@ -12,6 +12,7 @@ import '../models/environment_analysis.dart';
 import '../services/environment_analysis_api_service.dart';
 import '../services/tts_service.dart';
 import '../services/esp32_cam_service.dart';
+import '../services/voice_assistant_service.dart';
 import 'settings.dart';
 import 'device_diagnostics.dart';
 import '../utils/constants.dart';
@@ -28,6 +29,7 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   final TtsService _tts = TtsService();
+  late final VoiceAssistantService _voiceAssistant;
   bool _autoSpeakEnvAnalysis = true;
   String? _lastSpokenEnvSummary;
   bool _ttsReady = false;
@@ -39,13 +41,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _useCapturePreview = false;
   Timer? _capturePreviewTimer;
   Uint8List? _latestPreviewJpeg;
+  DateTime? _latestPreviewAt;
   bool _isFetchingPreviewFrame = false;
   int _previewTick = 0;
   String? _esp32CamErrorMessage;
+  String? _voiceLocale;
 
   @override
   void initState() {
     super.initState();
+    _voiceAssistant = VoiceAssistantService(
+      imageProvider: _provideVoiceAssistantImage,
+    );
     debugPrint(
       'ESP32-CAM PREVIEW URL (stream): ${ApiConfig.esp32CamStreamUrl}',
     );
@@ -57,6 +64,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _startCapturePreview();
 
     _initTts();
+    _voiceAssistant.addListener(_onVoiceAssistantChanged);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final locale = Localizations.localeOf(context).toLanguageTag();
+    if (_voiceLocale == locale) return;
+    _voiceLocale = locale;
+    unawaited(_voiceAssistant.initialize(localeId: locale));
+  }
+
+  void _onVoiceAssistantChanged() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _initTts() async {
@@ -116,6 +137,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void dispose() {
     _capturePreviewTimer?.cancel();
+    _voiceAssistant.removeListener(_onVoiceAssistantChanged);
+    _voiceAssistant.dispose();
     _tts.stop();
     super.dispose();
   }
@@ -173,6 +196,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       }
       setState(() {
         _latestPreviewJpeg = bytes;
+        _latestPreviewAt = DateTime.now();
         _esp32CamErrorMessage = null;
       });
     } catch (e) {
@@ -185,6 +209,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
     } finally {
       _isFetchingPreviewFrame = false;
     }
+  }
+
+  Future<Uint8List> _provideVoiceAssistantImage() async {
+    final preview = _latestPreviewJpeg;
+    final capturedAt = _latestPreviewAt;
+    if (preview != null &&
+        preview.isNotEmpty &&
+        capturedAt != null &&
+        DateTime.now().difference(capturedAt) < const Duration(seconds: 8)) {
+      debugPrint(
+        'VOICE ASSISTANT CAMERA: reusing preview frame (${preview.length} bytes)',
+      );
+      return preview;
+    }
+
+    // Avoid overlapping the fallback capture with the periodic preview poll.
+    while (_isFetchingPreviewFrame) {
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    }
+    debugPrint('VOICE ASSISTANT CAMERA: capturing a fresh fallback frame');
+    return Esp32CamService().captureJpeg(
+      captureUrl: ApiConfig.esp32CamCaptureUrl,
+    );
   }
 
   @override
@@ -245,7 +292,140 @@ class _DashboardScreenState extends State<DashboardScreen> {
             _buildHeader(context, snapshot, isLoading),
             const SizedBox(height: AppSpacing.md),
 
+            _buildVoiceAssistantCard(context),
+            const SizedBox(height: AppSpacing.md),
+
             _buildEnvironmentAnalysisCard(context, latestEnv),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVoiceAssistantCard(BuildContext context) {
+    final theme = Theme.of(context);
+    final state = _voiceAssistant.state;
+    final isListening = state == VoiceAssistantState.listening;
+    final isProcessing = state == VoiceAssistantState.processing;
+    final isMuted = state == VoiceAssistantState.muted;
+    final hasError = state == VoiceAssistantState.error;
+    final color = isMuted || hasError
+        ? AppColors.accentRed
+        : isListening
+        ? AppColors.accentGreen
+        : AppColors.accentBlue;
+    final icon = isMuted
+        ? Icons.volume_off
+        : isProcessing
+        ? Icons.hourglass_top_rounded
+        : _voiceAssistant.isBusy
+        ? Icons.stop_rounded
+        : Icons.mic_rounded;
+    final actionLabel = _voiceAssistant.isBusy
+        ? 'Stop voice assistant'
+        : 'Start voice assistant';
+
+    Future<void> activate() async {
+      if (_voiceAssistant.isBusy) {
+        await _voiceAssistant.stop();
+      } else {
+        await _voiceAssistant.startListening(
+          localeId: Localizations.localeOf(context).toLanguageTag(),
+        );
+      }
+    }
+
+    return Semantics(
+      container: true,
+      label: 'Voice assistant',
+      hint:
+          'Double tap the microphone or hold the physical Volume Up button to ask what is in front of you.',
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        decoration: BoxDecoration(
+          color: AppColors.cardBackground,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: color.withValues(alpha: .5)),
+          gradient: LinearGradient(
+            colors: [AppColors.cardBackground, color.withValues(alpha: .1)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Column(
+          children: [
+            Text(
+              'Voice assistant',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              'Ask “What’s in front of me?”',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: AppColors.textSecondary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            Semantics(
+              button: true,
+              label: actionLabel,
+              child: Tooltip(
+                message: actionLabel,
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: activate,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: 112,
+                    height: 112,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: color,
+                      boxShadow: [
+                        BoxShadow(
+                          color: color.withValues(alpha: .35),
+                          blurRadius: isListening ? 28 : 16,
+                          spreadRadius: isListening ? 7 : 2,
+                        ),
+                      ],
+                    ),
+                    child: isProcessing
+                        ? const Padding(
+                            padding: EdgeInsets.all(38),
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 3,
+                            ),
+                          )
+                        : Icon(icon, size: 52, color: Colors.white),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Semantics(
+              liveRegion: true,
+              child: Text(
+                _voiceAssistant.statusMessage,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: color,
+                  fontWeight: FontWeight.w600,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              'Shortcut: hold Volume Up • Short press still changes volume',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: AppColors.textSecondary,
+              ),
+              textAlign: TextAlign.center,
+            ),
           ],
         ),
       ),

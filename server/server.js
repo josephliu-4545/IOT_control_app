@@ -735,18 +735,27 @@ app.post('/device/upload-image', upload.single('image'), async (req, res) => {
       };
     }
 
-    const analysisRef = await db.collection('environment_analysis').add({
-      deviceId,
-      imageInfo: {
-        mimeType: req.file.mimetype,
-        sizeBytes: req.file.size,
-      },
-      result,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
-
-    // Mark command completed.
+    // Respond before Firestore persistence so a slow database operation cannot
+    // make the mobile voice assistant time out after AI has already succeeded.
+    const analysisRef = db.collection('environment_analysis').doc();
     const commandId = req.body?.commandId;
+    res.json({ ok: true, analysisId: analysisRef.id, result });
+
+    void (async () => {
+      try {
+        console.log('Saving environment analysis:', analysisRef.id);
+        await analysisRef.set({
+          deviceId,
+          imageInfo: {
+            mimeType: req.file.mimetype,
+            sizeBytes: req.file.size,
+          },
+          result,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        console.log('Environment analysis saved:', analysisRef.id);
+
+        // Mark command completed.
     if (commandId) {
       await db.collection('device_commands').doc(String(commandId)).set(
         {
@@ -778,7 +787,12 @@ app.post('/device/upload-image', upload.single('image'), async (req, res) => {
       }
     }
 
-    return res.json({ ok: true, analysisId: analysisRef.id, result });
+      } catch (persistError) {
+        console.error('ENVIRONMENT ANALYSIS FIRESTORE ERROR:', persistError);
+      }
+    })();
+
+    return;
   } catch (err) {
     const status = err.status || 500;
     return res.status(status).json({ error: err.message || 'Error', details: String(err) });
