@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:iot_control_app/services/voice_assistant_service.dart';
+import 'package:iot_control_app/utils/environment_summary.dart';
 
 void main() {
   group('parseVoiceIntent', () {
@@ -27,5 +28,14 @@ void main() {
     test('returns unknown for unsupported requests', () {
       expect(parseVoiceIntent('What time is it?'), VoiceIntent.unknown);
     });
+  });
+
+  test('environment summaries omit confidence scores', () {
+    expect(
+      cleanEnvironmentSummary(
+        'Detected objects: television (0.18), electric fan (0.04)',
+      ),
+      'Detected objects: television, electric fan',
+    );
   });
 }

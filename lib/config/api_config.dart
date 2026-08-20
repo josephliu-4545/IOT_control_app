@@ -1,7 +1,10 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiConfig {
-  static const String baseUrl = 'https://iot-control-app.onrender.com';
+  static const String baseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'http://172.20.10.4:8787',
+  );
 
   static const String deviceId = 'esp32cam-001';
   static const String deviceToken = '123456';

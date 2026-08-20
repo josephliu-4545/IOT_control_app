@@ -43,6 +43,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Uint8List? _latestPreviewJpeg;
   DateTime? _latestPreviewAt;
   bool _isFetchingPreviewFrame = false;
+  int _previewFailureCount = 0;
   int _previewTick = 0;
   String? _esp32CamErrorMessage;
   String? _voiceLocale;
@@ -52,6 +53,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.initState();
     _voiceAssistant = VoiceAssistantService(
       imageProvider: _provideVoiceAssistantImage,
+      analyzeEnvironmentShortcut: () =>
+          _analyzeEnvironment(announceStart: true),
     );
     debugPrint(
       'ESP32-CAM PREVIEW URL (stream): ${ApiConfig.esp32CamStreamUrl}',
@@ -169,8 +172,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   void _startCapturePreview() {
     if (_capturePreviewTimer != null) return;
-    debugPrint('ESP32-CAM CAPTURE PREVIEW: starting timer (2s)');
-    _capturePreviewTimer = Timer.periodic(const Duration(seconds: 2), (_) {
+    // ESP32-CAM HTTP servers are small and can become unstable under constant
+    // polling. Five seconds keeps the preview useful without exhausting it.
+    debugPrint('ESP32-CAM CAPTURE PREVIEW: starting timer (5s)');
+    _capturePreviewTimer = Timer.periodic(const Duration(seconds: 5), (_) {
       _previewTick += 1;
       if (_previewTick % 10 == 0) {
         debugPrint('ESP32-CAM CAPTURE PREVIEW: tick=$_previewTick');
@@ -197,11 +202,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
       setState(() {
         _latestPreviewJpeg = bytes;
         _latestPreviewAt = DateTime.now();
+        _previewFailureCount = 0;
         _esp32CamErrorMessage = null;
       });
     } catch (e) {
       debugPrint('ESP32-CAM CAPTURE PREVIEW ERROR: $e');
       if (!mounted) return;
+      _previewFailureCount += 1;
+      // Keep showing the last valid image during short camera hiccups. Only
+      // replace it with an offline state after three consecutive failures.
+      if (_latestPreviewJpeg != null && _previewFailureCount < 3) return;
       setState(() {
         _esp32CamErrorMessage =
             'Failed to connect to ESP32-CAM. Please check your connection.';
@@ -217,7 +227,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (preview != null &&
         preview.isNotEmpty &&
         capturedAt != null &&
-        DateTime.now().difference(capturedAt) < const Duration(seconds: 8)) {
+        DateTime.now().difference(capturedAt) < const Duration(seconds: 15)) {
       debugPrint(
         'VOICE ASSISTANT CAMERA: reusing preview frame (${preview.length} bytes)',
       );
@@ -232,6 +242,46 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Esp32CamService().captureJpeg(
       captureUrl: ApiConfig.esp32CamCaptureUrl,
     );
+  }
+
+  Future<void> _analyzeEnvironment({bool announceStart = false}) async {
+    if (_isEnvAnalyzing || !mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    try {
+      setState(() {
+        _isEnvAnalyzing = true;
+      });
+      if (announceStart && _ttsReady) {
+        await _tts.stop();
+        await _tts.speak('Analyzing your environment.');
+      }
+
+      final jpegBytes = await _provideVoiceAssistantImage();
+      await EnvironmentAnalysisApiService().uploadEnvironmentImage(
+        jpegBytes: jpegBytes,
+        languageTag: Localizations.localeOf(context).toLanguageTag(),
+      );
+
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.environmentImageUploaded)),
+      );
+    } catch (error) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(l10n.failedToAnalyzeEnvironment(error.toString())),
+        ),
+      );
+      if (announceStart && _ttsReady) {
+        await _tts.speak('I could not analyze the environment.');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isEnvAnalyzing = false;
+        });
+      }
+    }
   }
 
   @override
@@ -339,7 +389,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       container: true,
       label: 'Voice assistant',
       hint:
-          'Double tap the microphone or hold the physical Volume Up button to ask what is in front of you.',
+          'Hold Volume Up to ask. Press once, then press again and hold to analyze the environment.',
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.all(AppSpacing.lg),
@@ -420,7 +470,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              'Shortcut: hold Volume Up • Short press still changes volume',
+              'Hold: voice • Press once, then press and hold: analyze',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: AppColors.textSecondary,
               ),
@@ -515,42 +565,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       'low' => AppColors.accentGreen,
       _ => AppColors.textSecondary,
     };
-
-    Future<void> onAnalyzePressed() async {
-      final messenger = ScaffoldMessenger.of(context);
-      try {
-        if (_isEnvAnalyzing) return;
-        setState(() {
-          _isEnvAnalyzing = true;
-        });
-
-        final languageTag = Localizations.localeOf(context).toLanguageTag();
-
-        final jpegBytes = await Esp32CamService().captureJpeg(
-          captureUrl: ApiConfig.esp32CamCaptureUrl,
-        );
-        await EnvironmentAnalysisApiService().uploadEnvironmentImage(
-          jpegBytes: jpegBytes,
-          languageTag: languageTag,
-        );
-
-        messenger.showSnackBar(
-          SnackBar(content: Text(l10n.environmentImageUploaded)),
-        );
-      } catch (e) {
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text(l10n.failedToAnalyzeEnvironment(e.toString())),
-          ),
-        );
-      } finally {
-        if (mounted) {
-          setState(() {
-            _isEnvAnalyzing = false;
-          });
-        }
-      }
-    }
 
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
@@ -878,7 +892,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: _isEnvAnalyzing ? null : onAnalyzePressed,
+              onPressed: _isEnvAnalyzing ? null : () => _analyzeEnvironment(),
               icon: const Icon(Icons.analytics),
               label: Text(
                 _isEnvAnalyzing ? l10n.analyzing : l10n.analyzeMyEnvironment,

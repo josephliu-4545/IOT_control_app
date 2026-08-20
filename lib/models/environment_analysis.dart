@@ -1,5 +1,7 @@
 // lib/models/environment_analysis.dart
 
+import '../utils/environment_summary.dart';
+
 class EnvironmentAnalysis {
   final String deviceId;
   final String? imageUrl;
@@ -20,11 +22,13 @@ class EnvironmentAnalysis {
   factory EnvironmentAnalysis.fromFirestore({
     required Map<String, dynamic> data,
   }) {
-    final result = (data['result'] as Map?)?.cast<String, dynamic>() ??
+    final result =
+        (data['result'] as Map?)?.cast<String, dynamic>() ??
         const <String, dynamic>{};
 
     final hazards = List<String>.from(
-      (result['hazards'] as List?)?.map((e) => e.toString()) ?? const <String>[],
+      (result['hazards'] as List?)?.map((e) => e.toString()) ??
+          const <String>[],
     );
 
     return EnvironmentAnalysis(
@@ -32,7 +36,9 @@ class EnvironmentAnalysis {
       imageUrl: data['imageUrl'] as String?,
       lighting: result['lighting'] as String?,
       hazards: hazards,
-      summary: result['summary'] as String?,
+      summary: result['summary'] == null
+          ? null
+          : cleanEnvironmentSummary(result['summary'].toString()),
       riskLevel: result['risk_level'] as String?,
     );
   }

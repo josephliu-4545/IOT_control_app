@@ -9,6 +9,7 @@ import 'package:speech_to_text/speech_to_text.dart';
 import 'package:vibration/vibration.dart';
 
 import '../config/api_config.dart';
+import '../utils/environment_summary.dart';
 import 'environment_analysis_api_service.dart';
 import 'esp32_cam_service.dart';
 import 'tts_service.dart';
@@ -64,6 +65,7 @@ class VoiceAssistantService extends ChangeNotifier {
   final Esp32CamService _camera;
   final EnvironmentAnalysisApiService _analysisApi;
   final Future<Uint8List> Function()? _imageProvider;
+  final Future<void> Function()? _analyzeEnvironmentShortcut;
 
   VoiceAssistantState _state = VoiceAssistantState.idle;
   String _statusMessage = 'Ask what is in front of you';
@@ -85,11 +87,13 @@ class VoiceAssistantService extends ChangeNotifier {
     Esp32CamService? camera,
     EnvironmentAnalysisApiService? analysisApi,
     Future<Uint8List> Function()? imageProvider,
+    Future<void> Function()? analyzeEnvironmentShortcut,
   }) : _speech = speech ?? SpeechToText(),
        _tts = tts ?? TtsService(),
        _camera = camera ?? Esp32CamService(),
        _analysisApi = analysisApi ?? EnvironmentAnalysisApiService(),
-       _imageProvider = imageProvider;
+       _imageProvider = imageProvider,
+       _analyzeEnvironmentShortcut = analyzeEnvironmentShortcut;
 
   VoiceAssistantState get state => _state;
   String get statusMessage => _statusMessage;
@@ -123,6 +127,14 @@ class VoiceAssistantService extends ChangeNotifier {
   }
 
   Future<void> _handleVolumeShortcut(MethodCall call) async {
+    if (call.method == 'activateEnvironmentAnalysis') {
+      if (_analyzeEnvironmentShortcut != null) {
+        await _speech.stop();
+        await _tts.stop();
+        await _analyzeEnvironmentShortcut();
+      }
+      return;
+    }
     if (call.method != 'activateAssistant') return;
     final args = (call.arguments as Map?)?.cast<Object?, Object?>();
     final currentVolume = args?['currentVolume'] as int? ?? 0;
@@ -386,7 +398,10 @@ class VoiceAssistantService extends ChangeNotifier {
         languageTag: _localeId,
       );
       final result = (response['result'] as Map?)?.cast<String, dynamic>();
-      final summary = result?['summary']?.toString().trim();
+      final rawSummary = result?['summary']?.toString().trim();
+      final summary = rawSummary == null
+          ? null
+          : cleanEnvironmentSummary(rawSummary);
       if (summary == null || summary.isEmpty) {
         await _respond(
           'The image was analyzed, but no description was returned.',
